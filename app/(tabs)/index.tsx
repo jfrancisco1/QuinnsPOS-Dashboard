@@ -1,98 +1,133 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useCallback, useState } from "react";
+import { FlatList, Text, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { router, useFocusEffect } from "expo-router";
 
-export default function HomeScreen() {
+import { ListItem } from "@/components/ui/list-item";
+import { StatCard } from "@/components/ui/stat-card";
+import { useAuth } from "@/context/auth-context";
+import { getExpenses, getOrders, type Expense, type Order } from "@/lib/api";
+
+function isToday(dateStr: string): boolean {
+  const d = new Date(dateStr);
+  const today = new Date();
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
   );
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+function fmt(n: number): string {
+  return `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export default function DashboardScreen() {
+  const { token } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+      setLoading(true);
+      Promise.all([getOrders(token), getExpenses(token)]).then(
+        ([ordRes, expRes]) => {
+          if (ordRes.ok) setOrders(ordRes.data);
+          if (expRes.ok) setExpenses(expRes.data);
+          setLoading(false);
+        },
+      );
+    }, [token]),
+  );
+
+  const todayOrders = orders.filter((o) => isToday(o.createdAt));
+  const todayExpenses = expenses.filter((e) => isToday(e.expense_date));
+  const netSales = todayOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const totalExpenses = todayExpenses.reduce(
+    (sum, e) => sum + Number(e.amount),
+    0,
+  );
+  const grossProfit = netSales - totalExpenses;
+  const unpaidOrders = orders.filter((o) => o.paymentStatus !== "paid");
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  const header = (
+    <>
+      <View className="px-4 pb-4 pt-14">
+        <Text className="text-2xl font-bold text-zinc-900 dark:text-white">
+          Dashboard
+        </Text>
+        <Text className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          {today}
+        </Text>
+      </View>
+
+      {loading ? (
+        <View className="px-4">
+          <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+            Loading...
+          </Text>
+        </View>
+      ) : (
+        <View className="gap-3 px-4 pb-4">
+          <View className="flex-row gap-3">
+            <StatCard label="Net Sales" value={fmt(netSales)} />
+            <StatCard label="Gross Profit" value={fmt(grossProfit)} />
+          </View>
+          <View className="flex-row gap-3">
+            <StatCard
+              label="Today's Orders"
+              value={String(todayOrders.length)}
+            />
+            <StatCard label="Today's Expenses" value={fmt(totalExpenses)} />
+          </View>
+        </View>
+      )}
+
+      {!loading && (
+        <Text className="px-4 pb-2 pt-2 text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+          Unpaid Orders
+        </Text>
+      )}
+    </>
+  );
+
+  return (
+    <FlatList
+      className="flex-1 bg-zinc-50 dark:bg-zinc-950"
+      data={loading ? [] : unpaidOrders}
+      keyExtractor={(item) => String(item.id)}
+      ListHeaderComponent={header}
+      renderItem={({ item }) => (
+        <ListItem
+          title={`#${item.orderNumber} — ${item.customer.nickname}`}
+          subtitle={item.fulfillmentType}
+          right={
+            <Text className="text-sm font-semibold text-zinc-900 dark:text-white">
+              {fmt(Number(item.total))}
+            </Text>
+          }
+          onPress={() => router.push(`/order/${item.orderNumber}`)}
+        />
+      )}
+      ListEmptyComponent={
+        loading ? null : (
+          <View className="px-4 py-6">
+            <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+              No unpaid orders
+            </Text>
+          </View>
+        )
+      }
+      ListFooterComponent={<View className="h-8" />}
+    />
+  );
+}

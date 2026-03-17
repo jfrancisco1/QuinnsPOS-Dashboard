@@ -1,0 +1,253 @@
+const BASE_URL = 'https://laundryappapi-production.up.railway.app/api/v1';
+
+// ─── Shared types ─────────────────────────────────────────────────────────────
+
+export type LoginPayload = { username: string; password: string };
+export type LoginSuccess = { token: string };
+export type ApiError = { message: string; status: number };
+export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiError };
+
+// ─── Domain types ─────────────────────────────────────────────────────────────
+
+export type Category = {
+  id: number;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+};
+
+export type Item = {
+  id: number;
+  name: string;
+  description: string | null;
+  image: string | null;
+  price: number;
+  cost: number;
+  color: string | null;
+  shape: string | null;
+  is_active: boolean;
+  category: Category;
+  created_at: string;
+};
+
+export type OrderItem = {
+  id: number;
+  name: string;
+  quantity: number;
+  price: number;
+  category?: Pick<Category, 'id' | 'name'>;
+};
+
+export type Customer = {
+  id: number;
+  nickname: string;
+  mobile: string | null;
+  address: string | null;
+  notes: string | null;
+  deliveryFee: number;
+  created_at: string;
+};
+
+export type Order = {
+  id: number;
+  orderNumber: string;
+  customer: Customer;
+  fulfillmentType: string;
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentStatus: string;
+  orderStatus: string;
+  createdAt: string;
+  items: OrderItem[];
+};
+
+export type Expense = {
+  id: number;
+  description: string;
+  amount: number;
+  expense_date: string;
+  note: string | null;
+  user_id: number;
+  created_at: string;
+};
+
+// ─── Payload types ────────────────────────────────────────────────────────────
+
+export type CreateItemPayload = {
+  name: string;
+  price: number;
+  cost: number;
+  description?: string;
+  color?: string;
+  shape?: string;
+  is_active: boolean;
+  category_id: number;
+};
+
+export type CreateCategoryPayload = {
+  name: string;
+  is_active: boolean;
+};
+
+export type CreateExpensePayload = {
+  description: string;
+  amount: number;
+  expense_date: string;
+  note?: string;
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function extractArray<T>(json: unknown): T[] {
+  if (Array.isArray(json)) return json as T[];
+  if (typeof json === 'object' && json !== null) {
+    const j = json as Record<string, unknown>;
+    for (const key of ['data', 'orders', 'items', 'categories', 'expenses']) {
+      if (Array.isArray(j[key])) return j[key] as T[];
+    }
+  }
+  return [];
+}
+
+function extractToken(json: unknown): string | null {
+  if (typeof json !== 'object' || json === null) return null;
+  const j = json as Record<string, unknown>;
+  const raw = j['token'] ?? j['access_token'] ?? j['access'];
+  return typeof raw === 'string' ? raw : null;
+}
+
+async function authFetch<T>(
+  token: string,
+  path: string,
+  options: RequestInit = {},
+): Promise<ApiResult<T>> {
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(options.headers ?? {}),
+      },
+    });
+    const json: unknown = await response.json();
+    if (response.ok) {
+      return { ok: true, data: json as T };
+    }
+    const err = json as Record<string, unknown>;
+    const message = typeof err['message'] === 'string' ? err['message'] : 'Request failed';
+    return { ok: false, error: { message, status: response.status } };
+  } catch {
+    return { ok: false, error: { message: 'Network error', status: 0 } };
+  }
+}
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export async function loginRequest(payload: LoginPayload): Promise<ApiResult<LoginSuccess>> {
+  try {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const json: unknown = await response.json();
+    if (response.ok) {
+      const token = extractToken(json);
+      if (!token) {
+        return {
+          ok: false,
+          error: { message: 'Unexpected response from server', status: response.status },
+        };
+      }
+      return { ok: true, data: { token } };
+    }
+    const errorJson = json as Record<string, unknown>;
+    const message =
+      typeof errorJson['message'] === 'string'
+        ? errorJson['message']
+        : typeof errorJson['error'] === 'string'
+          ? errorJson['error']
+          : 'Invalid credentials';
+    return { ok: false, error: { message, status: response.status } };
+  } catch {
+    return { ok: false, error: { message: 'Network error', status: 0 } };
+  }
+}
+
+export function logoutRequest(token: string) {
+  return authFetch<null>(token, '/logout', { method: 'POST' });
+}
+
+// ─── Orders ───────────────────────────────────────────────────────────────────
+
+export async function getOrders(token: string): Promise<ApiResult<Order[]>> {
+  const result = await authFetch<unknown>(token, '/orders');
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<Order>(result.data) };
+}
+
+export function getOrderByNumber(token: string, orderNumber: string) {
+  return authFetch<Order>(token, `/orders/${orderNumber}`);
+}
+
+// ─── Items ────────────────────────────────────────────────────────────────────
+
+export async function getItems(token: string): Promise<ApiResult<Item[]>> {
+  const result = await authFetch<unknown>(token, '/items');
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<Item>(result.data) };
+}
+
+export function createItem(token: string, data: CreateItemPayload) {
+  return authFetch<Item>(token, '/items', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getItemById(token: string, id: number) {
+  return authFetch<Item>(token, `/items/${id}`);
+}
+
+export function updateItem(token: string, id: number, data: Partial<CreateItemPayload>) {
+  return authFetch<Item>(token, `/items/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteItem(token: string, id: number) {
+  return authFetch<null>(token, `/items/${id}`, { method: 'DELETE' });
+}
+
+// ─── Categories ───────────────────────────────────────────────────────────────
+
+export async function getCategories(token: string): Promise<ApiResult<Category[]>> {
+  const result = await authFetch<unknown>(token, '/categories');
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<Category>(result.data) };
+}
+
+export function createCategory(token: string, data: CreateCategoryPayload) {
+  return authFetch<Category>(token, '/categories', { method: 'POST', body: JSON.stringify(data) });
+}
+
+export function getCategoryById(token: string, id: number) {
+  return authFetch<Category>(token, `/categories/${id}`);
+}
+
+export function updateCategory(token: string, id: number, data: Partial<CreateCategoryPayload>) {
+  return authFetch<Category>(token, `/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+}
+
+export function deleteCategory(token: string, id: number) {
+  return authFetch<null>(token, `/categories/${id}`, { method: 'DELETE' });
+}
+
+// ─── Expenses ─────────────────────────────────────────────────────────────────
+
+export async function getExpenses(token: string): Promise<ApiResult<Expense[]>> {
+  const result = await authFetch<unknown>(token, '/expenses');
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<Expense>(result.data) };
+}
+
+export function createExpense(token: string, data: CreateExpensePayload) {
+  return authFetch<Expense>(token, '/expenses', { method: 'POST', body: JSON.stringify(data) });
+}
