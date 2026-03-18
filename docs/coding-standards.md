@@ -115,6 +115,109 @@ export function OrderCard({ orderId, total, onPress }: OrderCardProps) {
 
 ---
 
+## API Integration
+
+**Base URL:** `https://laundryappapi-production.up.railway.app/api/v1`
+
+All requests (except `POST /login`) require a Bearer token in the `Authorization` header:
+```
+Authorization: Bearer <token>
+```
+
+The token is obtained from `POST /login` and stored/retrieved from context or secure storage.
+
+### Endpoints Reference
+
+#### Auth
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/login` | Public | Login with `username` + `password`; returns token |
+| POST | `/logout` | Required | Invalidate current token |
+| GET | `/me` | Required | Get current user + token expiry |
+
+#### Branches
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/branches` | Required | List all active branches |
+| POST | `/branches` | Admin only | Create branch (`name`, `address`, `phone`, `is_active`) |
+| GET | `/branches/{id}` | Required | Get single branch |
+| PATCH | `/branches/{id}` | Admin only | Update branch fields |
+| DELETE | `/branches/{id}` | Admin only | Delete branch |
+
+#### Customers
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/customers` | List all customers |
+| POST | `/customers` | Create (`nickname` required, `mobile`, `address`, `notes`, `delivery_fee`) |
+| GET | `/customers/{id}` | Get single customer |
+| PUT | `/customers/{id}` | Update customer |
+| DELETE | `/customers/{id}` | Soft delete customer |
+
+#### Orders
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/orders` | List all orders with nested items |
+| POST | `/orders` | Create order (see schema below) |
+| GET | `/orders/{orderNumber}` | Get single order with customer details |
+| PUT | `/orders/{orderNumber}` | Update order |
+| DELETE | `/orders/{orderNumber}` | Delete order |
+
+**POST /orders body:**
+```ts
+{
+  customer_id: number;           // required
+  fulfillmentType: 'walk-in' | 'pickup-deliver'; // required
+  subtotal: number;              // required
+  deliveryFee: number;           // required
+  discountAmount?: number;       // defaults 0
+  total: number;                 // required
+  createdAt?: string;            // ISO 8601
+  paymentStatus?: 'unpaid' | 'pending' | 'paid_gcash' | 'paid_cash';
+  orderStatus?: 'in_progress' | 'ready' | 'completed';
+  items: Array<{                 // min 1 item
+    itemId: string;
+    label: string;
+    qty: number;
+    price: number;
+  }>;
+}
+```
+
+#### Expenses
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/expenses` | List all expenses |
+| POST | `/expenses` | Create (`description`, `amount`, `expense_date` YYYY-MM-DD, `note`) |
+| GET | `/expenses/{id}` | Get single expense |
+| PUT | `/expenses/{id}` | Update expense |
+| DELETE | `/expenses/{id}` | Delete expense |
+
+#### Reports
+All report endpoints accept: `period` (today | this_week | this_month | this_year | custom), `from`/`to` (YYYY-MM-DD, required when period=custom), `branch_id` (admin only).
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/reports/sales` | Gross sales, discounts, net sales, COGS, gross profit |
+| GET | `/reports/sales-by-item` | Item-level breakdown with top items |
+| GET | `/reports/sales-by-payment-type` | Payment method breakdown |
+
+#### Categories & Items
+| Method | Path | Description |
+|--------|------|-------------|
+| GET/POST | `/categories` | List or create categories (`name`, `is_active`) |
+| GET/PUT/DELETE | `/categories/{id}` | Get, update, or delete category |
+| GET/POST | `/items` | List or create items (`name`, `price`, `cost`, `description`, `color` hex, `shape`, `is_active`, `category_id`) |
+| GET/PUT/DELETE | `/items/{id}` | Get, update, or delete item |
+
+### API Calling Conventions
+
+- All API calls go through `lib/api.ts` — do not call `fetch` directly in components.
+- Handle 401 responses globally (token expiry → redirect to login).
+- Use TypeScript types for all request bodies and responses — no `any`.
+- Errors from the API return `{ detail: string }` or `{ detail: [...] }` for 422 validation errors.
+
+---
+
 ## Imports Order
 
 Maintain this order, separated by blank lines:

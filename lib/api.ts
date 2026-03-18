@@ -31,26 +31,35 @@ export type Item = {
 };
 
 export type OrderItem = {
-  id: number;
-  name: string;
-  quantity: number;
+  id: string;
+  itemId: string;
+  label: string;
+  qty: number;
   price: number;
-  category?: Pick<Category, 'id' | 'name'>;
 };
 
 export type Customer = {
-  id: number;
+  id: string;
   nickname: string;
   mobile: string | null;
   address: string | null;
   notes: string | null;
-  deliveryFee: number;
+  deliveryFee: string;
+  last_visit: string | null;
+  total_spend: number;
   created_at: string;
+  updated_at: string;
+};
+
+export type Branch = {
+  id: number;
+  name: string;
 };
 
 export type Order = {
-  id: number;
+  id: string;
   orderNumber: string;
+  customer_id: string;
   customer: Customer;
   fulfillmentType: string;
   subtotal: number;
@@ -59,7 +68,18 @@ export type Order = {
   paymentStatus: string;
   orderStatus: string;
   createdAt: string;
+  branch: Branch;
   items: OrderItem[];
+};
+
+export type SalesSummary = {
+  from: string;
+  to: string;
+  grossSales: number;
+  discounts: number;
+  netSales: number;
+  costOfGoods: number;
+  grossProfit: number;
 };
 
 export type Expense = {
@@ -98,6 +118,16 @@ export type CreateExpensePayload = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function extractObject<T>(json: unknown): T | null {
+  if (typeof json === 'object' && json !== null) {
+    const j = json as Record<string, unknown>;
+    if ('data' in j && typeof j['data'] === 'object' && j['data'] !== null) {
+      return j['data'] as T;
+    }
+  }
+  return null;
+}
 
 function extractArray<T>(json: unknown): T[] {
   if (Array.isArray(json)) return json as T[];
@@ -188,8 +218,27 @@ export async function getOrders(token: string): Promise<ApiResult<Order[]>> {
   return { ok: true, data: extractArray<Order>(result.data) };
 }
 
-export function getOrderByNumber(token: string, orderNumber: string) {
-  return authFetch<Order>(token, `/orders/${orderNumber}`);
+export async function getOrderByNumber(token: string, id: string): Promise<ApiResult<Order>> {
+  const result = await authFetch<unknown>(token, `/orders/${id}`);
+  if (!result.ok) return result;
+  const order = extractObject<Order>(result.data);
+  if (!order) {
+    return { ok: false, error: { message: 'Unexpected response shape', status: 0 } };
+  }
+  return { ok: true, data: order };
+}
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+export async function getSalesSummary(
+  token: string,
+  period: 'today' | 'this_week' | 'this_month' | 'this_year',
+): Promise<ApiResult<SalesSummary>> {
+  const result = await authFetch<unknown>(token, `/reports/sales?period=${period}`);
+  if (!result.ok) return result;
+  const summary = extractObject<SalesSummary>(result.data);
+  const data = summary ?? (result.data as SalesSummary);
+  return { ok: true, data };
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────

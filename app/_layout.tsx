@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
+import { BranchProvider } from '@/context/branch-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -59,7 +60,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-        <RootLayoutNav />
+        <BranchProvider>
+          <RootLayoutNav />
+        </BranchProvider>
       </AuthProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
