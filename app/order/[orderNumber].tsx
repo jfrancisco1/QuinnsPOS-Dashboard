@@ -26,6 +26,8 @@ function statusVariant(status: string): BadgeVariant {
       return 'success';
     case 'pending':
       return 'warning';
+    case 'in_progress':
+      return 'info';
     case 'cancelled':
       return 'danger';
     default:
@@ -86,6 +88,9 @@ export default function OrderDetailScreen() {
           <Text className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
             Date: {new Date(order.createdAt).toLocaleString()}
           </Text>
+          <Text className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
+            Branch: {order.branch?.name ?? '—'}
+          </Text>
         </View>
 
         {/* Items card */}
@@ -102,13 +107,13 @@ export default function OrderDetailScreen() {
                 className="flex-row items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800"
               >
                 <View className="flex-1">
-                  <Text className="text-sm text-zinc-900 dark:text-white">{item.name}</Text>
-                  {(item.quantity ?? 1) > 1 && (
-                    <Text className="text-xs text-zinc-500 dark:text-zinc-400">×{item.quantity}</Text>
+                  <Text className="text-sm text-zinc-900 dark:text-white">{item.label}</Text>
+                  {item.qty > 1 && (
+                    <Text className="text-xs text-zinc-500 dark:text-zinc-400">×{item.qty}</Text>
                   )}
                 </View>
                 <Text className="text-sm font-medium text-zinc-900 dark:text-white">
-                  ₱{(Number(item.price) * (item.quantity ?? 1)).toFixed(2)}
+                  ₱{(Number(item.price) * item.qty).toFixed(2)}
                 </Text>
               </View>
             ))

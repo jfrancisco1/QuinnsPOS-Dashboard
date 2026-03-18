@@ -29,6 +29,21 @@ No test suite is configured yet.
 
 **Key config**: `app.json` enables New Architecture, React Compiler (experimental), and typed routes. Web output is set to `static`.
 
+## API
+
+**Base URL:** `https://laundryappapi-production.up.railway.app/api/v1`
+
+All requests require `Authorization: Bearer <token>` except `POST /login`. Key endpoints:
+- **Auth**: `POST /login`, `POST /logout`, `GET /me`
+- **Branches**: `GET|POST /branches`, `GET|PATCH|DELETE /branches/{id}`
+- **Customers**: `GET|POST /customers`, `GET|PUT|DELETE /customers/{id}`
+- **Orders**: `GET|POST /orders`, `GET|PUT|DELETE /orders/{orderNumber}` (keyed by orderNumber string, not id)
+- **Expenses**: `GET|POST /expenses`, `GET|PUT|DELETE /expenses/{id}`
+- **Reports**: `GET /reports/sales`, `/reports/sales-by-item`, `/reports/sales-by-payment-type` — all accept `period`, `from`, `to`, `branch_id` query params
+- **Categories/Items**: full CRUD at `/categories` and `/items`
+
+Full endpoint schemas are in [`docs/coding-standards.md`](docs/coding-standards.md#api-integration). All API calls go through `lib/api.ts`.
+
 ## Coding Standards
 
 Full standards are in [`docs/coding-standards.md`](docs/coding-standards.md). Key rules:
