@@ -21,6 +21,7 @@ const MAPPING = {
   'list.bullet': 'list',
   'tag.fill': 'label',
   'chart.bar.fill': 'bar-chart',
+  'storefront.fill': 'store',
 } as IconMapping;
 
 /**

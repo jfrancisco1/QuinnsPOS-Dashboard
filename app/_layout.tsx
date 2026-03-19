@@ -10,29 +10,29 @@ import { AuthProvider, useAuth } from '@/context/auth-context';
 import { BranchProvider } from '@/context/branch-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-const VioletLightTheme: Theme = {
+const AppLightTheme: Theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#7C3AED',
+    primary: '#3B55D5',
     background: '#FFFFFF',
     card: '#FFFFFF',
-    text: '#1E1B4B',
-    border: '#EDE9FE',
-    notification: '#7C3AED',
+    text: '#111827',
+    border: '#E5E7EB',
+    notification: '#3B55D5',
   },
 };
 
-const VioletDarkTheme: Theme = {
+const AppDarkTheme: Theme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#A78BFA',
-    background: '#13111C',
-    card: '#1A1625',
-    text: '#F5F3FF',
-    border: '#2D1F4E',
-    notification: '#A78BFA',
+    primary: '#7B9EFF',
+    background: '#0F172A',
+    card: '#1E2B6B',
+    text: '#F9FAFB',
+    border: '#1E293B',
+    notification: '#7B9EFF',
   },
 };
 
@@ -84,7 +84,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? VioletDarkTheme : VioletLightTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? AppDarkTheme : AppLightTheme}>
       <AuthProvider>
         <BranchProvider>
           <RootLayoutNav />

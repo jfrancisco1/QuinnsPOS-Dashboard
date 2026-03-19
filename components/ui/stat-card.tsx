@@ -1,8 +1,13 @@
 import { Text, View } from 'react-native';
 
-export type StatCardColor = 'sky' | 'emerald' | 'amber' | 'violet' | 'default';
+export type StatCardColor = 'sky' | 'emerald' | 'amber' | 'violet' | 'indigo' | 'default';
 
 const colorMap: Record<StatCardColor, { bg: string; label: string; value: string }> = {
+  indigo: {
+    bg: 'bg-[#3B55D5]',
+    label: 'text-[#BFCEFF]',
+    value: 'text-white',
+  },
   sky: {
     bg: 'bg-sky-500',
     label: 'text-sky-100',
