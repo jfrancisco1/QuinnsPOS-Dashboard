@@ -1,6 +1,6 @@
 import '../global.css';
 
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, Theme, ThemeProvider } from '@react-navigation/native';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -9,6 +9,32 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { BranchProvider } from '@/context/branch-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+const VioletLightTheme: Theme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#7C3AED',
+    background: '#FFFFFF',
+    card: '#FFFFFF',
+    text: '#1E1B4B',
+    border: '#EDE9FE',
+    notification: '#7C3AED',
+  },
+};
+
+const VioletDarkTheme: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: '#A78BFA',
+    background: '#13111C',
+    card: '#1A1625',
+    text: '#F5F3FF',
+    border: '#2D1F4E',
+    notification: '#A78BFA',
+  },
+};
 
 export const unstable_settings = {
   anchor: 'login',
@@ -58,13 +84,13 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? VioletDarkTheme : VioletLightTheme}>
       <AuthProvider>
         <BranchProvider>
           <RootLayoutNav />
         </BranchProvider>
       </AuthProvider>
-      <StatusBar style="auto" />
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
     </ThemeProvider>
   );
 }

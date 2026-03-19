@@ -5,25 +5,30 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Violet family — professional brand palette
+const tintColorLight = '#7C3AED'; // violet-600
+const tintColorDark = '#A78BFA';  // violet-400
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    text: '#1E1B4B',           // indigo-950 — deep readable dark
+    background: '#FFFFFF',     // clean white
+    tint: tintColorLight,      // violet-600
+    icon: '#7C3AED',           // violet-600
+    tabIconDefault: '#9CA3AF', // gray-400
     tabIconSelected: tintColorLight,
+    tabBarBackground: '#1A1625', // always-dark bottom nav
+    border: '#EDE9FE',           // violet-100
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    text: '#F5F3FF',           // violet-50 — near white
+    background: '#13111C',     // very dark violet
+    tint: tintColorDark,       // violet-400
+    icon: '#A78BFA',           // violet-400
+    tabIconDefault: '#6B7280', // gray-500
     tabIconSelected: tintColorDark,
+    tabBarBackground: '#13111C', // dark bottom nav
+    border: '#2D1F4E',           // dark violet border
   },
 };
 
