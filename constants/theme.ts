@@ -5,36 +5,36 @@
 
 import { Platform } from 'react-native';
 
-// Royal blue — professional brand palette (matches screenshot)
-const tintColorLight = '#3B55D5'; // royal blue
-const tintColorDark = '#7B9EFF';  // light blue for dark mode
+// Brand primary: deep blue #3B55D5
+const tintColorLight = '#3B55D5';
+const tintColorDark = '#6B7FEF';
 
 export const Colors = {
   light: {
-    text: '#111827',           // gray-900
-    background: '#FFFFFF',
-    tint: tintColorLight,      // royal blue
+    text: '#1A1F3C',           // dark navy
+    background: '#FFFFFF',     // white
+    tint: tintColorLight,
     icon: '#3B55D5',
-    tabIconDefault: '#9CA3AF', // gray-400
-    tabIconSelected: tintColorLight,
-    tabBarBackground: '#111111', // near-black bottom nav
-    border: '#E5E7EB',           // gray-200
-    headerBg: '#3B55D5',         // header background
-    headerText: '#FFFFFF',
-    headerSubtext: '#BFCEFF',    // light blue-white
+    tabIconDefault: '#ABABC0', // muted gray
+    tabIconSelected: '#3B55D5',
+    tabBarBackground: '#FFFFFF', // white bottom nav
+    border: '#E8EAF6',
+    headerBg: '#FFFFFF',
+    headerText: '#1A1F3C',
+    headerSubtext: '#8A8FA8',
   },
   dark: {
-    text: '#F9FAFB',           // gray-50
-    background: '#0F172A',     // slate-900
+    text: '#F0F2FF',
+    background: '#12142A',
     tint: tintColorDark,
-    icon: '#7B9EFF',
-    tabIconDefault: '#6B7280', // gray-500
-    tabIconSelected: tintColorDark,
-    tabBarBackground: '#0A0A0A', // near-black
-    border: '#1E293B',           // slate-800
-    headerBg: '#1E2B6B',         // dark blue header
-    headerText: '#FFFFFF',
-    headerSubtext: '#93AEFF',
+    icon: '#6B7FEF',
+    tabIconDefault: '#5A5E7A',
+    tabIconSelected: '#6B7FEF',
+    tabBarBackground: '#1C1E38',
+    border: '#252845',
+    headerBg: '#1C1E38',
+    headerText: '#F0F2FF',
+    headerSubtext: '#7A7F9A',
   },
 };
 

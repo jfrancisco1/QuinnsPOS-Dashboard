@@ -1,12 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { FAB } from "@/components/ui/fab";
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useAuth } from "@/context/auth-context";
+import { useBranch } from "@/context/branch-context";
 import { getCategories, getItems, type Category, type Item } from "@/lib/api";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   FlatList,
+  Modal,
   SectionList,
   Text,
   TouchableOpacity,
@@ -94,8 +97,11 @@ function ItemCard({ item }: { item: Item }) {
         borderRadius: 16,
         overflow: "hidden",
         backgroundColor: "white",
-        borderWidth: 1,
-        borderColor: "#e4e4e7",
+        shadowColor: '#1A1F3C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+        elevation: 2,
       }}
     >
       <View style={{ padding: 12 }}>
@@ -107,7 +113,7 @@ function ItemCard({ item }: { item: Item }) {
           }}
         >
           <Text
-            className="flex-1 text-sm font-semibold text-zinc-900 dark:text-white"
+            className="flex-1 text-sm font-semibold text-[#1A1F3C] dark:text-white"
             numberOfLines={2}
           >
             {item.name}
@@ -119,13 +125,13 @@ function ItemCard({ item }: { item: Item }) {
           ) : null}
         </View>
         <Text
-          className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400"
+          className="mt-0.5 text-xs text-[#8A8FA8] dark:text-[#5A5E7A]"
           numberOfLines={1}
         >
           {item.category?.name ?? "—"}
         </Text>
         <View className="mt-2 flex-row items-center justify-between">
-          <Text className="text-base font-bold text-zinc-900 dark:text-white">
+          <Text className="text-base font-bold text-[#1A1F3C] dark:text-white">
             ₱{Number(item.price).toFixed(2)}
           </Text>
           {!item.is_active && <Badge label="Inactive" variant="warning" />}
@@ -157,12 +163,15 @@ function CategoryCard({ cat }: { cat: Category }) {
         borderRadius: 16,
         padding: 16,
         backgroundColor: "white",
-        borderWidth: 1,
-        borderColor: "#e4e4e7",
+        shadowColor: '#1A1F3C',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 8,
+        elevation: 2,
       }}
     >
       <Text
-        className="text-sm font-semibold text-zinc-900 dark:text-white"
+        className="text-sm font-semibold text-[#1A1F3C] dark:text-white"
         numberOfLines={1}
       >
         {cat.name}
@@ -186,23 +195,25 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 export default function CatalogScreen() {
   const { token } = useAuth();
+  const { branches, selectedBranch, setSelectedBranch, loadBranches } = useBranch();
   const [tab, setTab] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [branchModalVisible, setBranchModalVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
       setLoading(true);
-      Promise.all([getItems(token), getCategories(token)]).then(
+      Promise.all([getItems(token), getCategories(token), loadBranches(token)]).then(
         ([itemsRes, catsRes]) => {
           if (itemsRes.ok) setItems(itemsRes.data);
           if (catsRes.ok) setCategories(catsRes.data);
           setLoading(false);
         },
       );
-    }, [token]),
+    }, [token, loadBranches]),
   );
 
   // Group items by category for SectionList
@@ -220,12 +231,87 @@ export default function CatalogScreen() {
   })();
 
   return (
-    <View className="flex-1 bg-zinc-50 dark:bg-zinc-950">
-      <View className="px-4 pb-2 pt-14">
-        <Text className="text-2xl font-bold text-zinc-900 dark:text-white">
-          Items
-        </Text>
+    <View className="flex-1 bg-white dark:bg-[#12142A]">
+      <View
+        className="bg-white px-5 pb-4 pt-14 dark:bg-[#1C1E38]"
+        style={{
+          shadowColor: '#1A1F3C',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 3,
+        }}
+      >
+        <View className="flex-row items-center justify-between">
+          <Text className="text-2xl font-bold text-[#1A1F3C] dark:text-white">
+            Items
+          </Text>
+          <TouchableOpacity
+            onPress={() => setBranchModalVisible(true)}
+            activeOpacity={0.75}
+            className="rounded-2xl bg-[#ECEEFF] p-2.5 dark:bg-[#252845]"
+          >
+            <IconSymbol name="storefront.fill" size={20} color="#3B55D5" />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Branch picker modal */}
+      <Modal
+        visible={branchModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBranchModalVisible(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 bg-black/40"
+          activeOpacity={1}
+          onPress={() => setBranchModalVisible(false)}
+        >
+          <View
+            className="mx-4 mt-28 rounded-3xl bg-white p-5 dark:bg-[#1C1E38]"
+            style={{
+              shadowColor: '#1A1F3C',
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.15,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text className="mb-4 text-base font-bold text-[#1A1F3C] dark:text-white">
+              Select Branch
+            </Text>
+            {branches.map((branch) => (
+              <TouchableOpacity
+                key={branch.id}
+                onPress={() => {
+                  setSelectedBranch(branch);
+                  setBranchModalVisible(false);
+                }}
+                className={`mb-2 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+                  selectedBranch?.id === branch.id
+                    ? 'bg-[#3B55D5]'
+                    : 'bg-[#ECEEFF] dark:bg-[#252845]'
+                }`}
+              >
+                <Text
+                  className={`font-semibold ${
+                    selectedBranch?.id === branch.id
+                      ? 'text-white'
+                      : 'text-[#1A1F3C] dark:text-[#C8CCF0]'
+                  }`}
+                >
+                  {branch.name}
+                </Text>
+                {selectedBranch?.id === branch.id && (
+                  <View className="h-2 w-2 rounded-full bg-white/80" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <SegmentedControl
         options={["Items", "Categories"]}
@@ -235,7 +321,7 @@ export default function CatalogScreen() {
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+          <Text className="text-sm text-[#8A8FA8] dark:text-[#5A5E7A]">
             Loading...
           </Text>
         </View>
@@ -248,7 +334,7 @@ export default function CatalogScreen() {
           contentContainerStyle={{ padding: 6 }}
           renderSectionHeader={({ section }) => (
             <View className="px-2 pb-1 pt-3">
-              <Text className="text-xs font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+              <Text className="text-xs font-semibold uppercase tracking-widest text-[#8A8FA8] dark:text-[#5A5E7A]">
                 {section.title}
               </Text>
             </View>
@@ -263,7 +349,7 @@ export default function CatalogScreen() {
           )}
           ListEmptyComponent={
             <View className="items-center py-20">
-              <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+              <Text className="text-sm text-[#8A8FA8] dark:text-[#5A5E7A]">
                 No items yet
               </Text>
             </View>
@@ -279,7 +365,7 @@ export default function CatalogScreen() {
           renderItem={({ item: cat }) => <CategoryCard cat={cat} />}
           ListEmptyComponent={
             <View className="items-center py-20">
-              <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+              <Text className="text-sm text-[#8A8FA8] dark:text-[#5A5E7A]">
                 No categories yet
               </Text>
             </View>
