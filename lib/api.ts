@@ -54,6 +54,7 @@ export type Customer = {
 export type Branch = {
   id: number;
   name: string;
+  is_active: boolean;
 };
 
 export type Order = {
@@ -80,6 +81,16 @@ export type SalesSummary = {
   netSales: number;
   costOfGoods: number;
   grossProfit: number;
+};
+
+export type SalesByItem = {
+  item_id: string;
+  label: string;
+  category: string;
+  qty: number;
+  net_sales: number;
+  cost_of_goods: number;
+  gross_profit: number;
 };
 
 export type Expense = {
@@ -133,7 +144,7 @@ function extractArray<T>(json: unknown): T[] {
   if (Array.isArray(json)) return json as T[];
   if (typeof json === 'object' && json !== null) {
     const j = json as Record<string, unknown>;
-    for (const key of ['data', 'orders', 'items', 'categories', 'expenses']) {
+    for (const key of ['data', 'orders', 'items', 'categories', 'expenses', 'branches']) {
       if (Array.isArray(j[key])) return j[key] as T[];
     }
   }
@@ -232,13 +243,68 @@ export async function getOrderByNumber(token: string, id: string): Promise<ApiRe
 
 export async function getSalesSummary(
   token: string,
-  period: 'today' | 'this_week' | 'this_month' | 'this_year',
+  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  opts?: { from?: string; to?: string; branch_id?: number },
 ): Promise<ApiResult<SalesSummary>> {
-  const result = await authFetch<unknown>(token, `/reports/sales?period=${period}`);
+  const params = new URLSearchParams();
+  if (period === 'custom') {
+    if (opts?.from) params.set('from', opts.from);
+    if (opts?.to) params.set('to', opts.to);
+  } else {
+    params.set('period', period);
+  }
+  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/sales?${params.toString()}`);
   if (!result.ok) return result;
   const summary = extractObject<SalesSummary>(result.data);
   const data = summary ?? (result.data as SalesSummary);
   return { ok: true, data };
+}
+
+export type SalesByPaymentType = {
+  payment_method: string;
+  transactions: number;
+  payment_amount: number;
+  net_amount: number;
+};
+
+export async function getSalesByPaymentType(
+  token: string,
+  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  opts?: { from?: string; to?: string; branch_id?: number },
+): Promise<ApiResult<SalesByPaymentType[]>> {
+  const params = new URLSearchParams();
+  if (period === 'custom') {
+    if (opts?.from) params.set('from', opts.from);
+    if (opts?.to) params.set('to', opts.to);
+  } else {
+    params.set('period', period);
+  }
+  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/sales-by-payment-type?${params.toString()}`);
+  if (!result.ok) return result;
+  // response wraps data under "breakdown"
+  const raw = result.data as Record<string, unknown>;
+  const breakdown = Array.isArray(raw['breakdown']) ? (raw['breakdown'] as SalesByPaymentType[]) : [];
+  return { ok: true, data: breakdown };
+}
+
+export async function getSalesByItem(
+  token: string,
+  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  opts?: { from?: string; to?: string; branch_id?: number },
+): Promise<ApiResult<SalesByItem[]>> {
+  const params = new URLSearchParams();
+  if (period === 'custom') {
+    if (opts?.from) params.set('from', opts.from);
+    if (opts?.to) params.set('to', opts.to);
+  } else {
+    params.set('period', period);
+  }
+  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/sales-by-item?${params.toString()}`);
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<SalesByItem>(result.data) };
 }
 
 // ─── Items ────────────────────────────────────────────────────────────────────
@@ -287,6 +353,14 @@ export function updateCategory(token: string, id: number, data: Partial<CreateCa
 
 export function deleteCategory(token: string, id: number) {
   return authFetch<null>(token, `/categories/${id}`, { method: 'DELETE' });
+}
+
+// ─── Branches ─────────────────────────────────────────────────────────────────
+
+export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
+  const result = await authFetch<unknown>(token, '/branches');
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<Branch>(result.data) };
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────

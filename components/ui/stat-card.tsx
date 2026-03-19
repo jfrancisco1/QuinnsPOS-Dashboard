@@ -2,36 +2,36 @@ import { Text, View } from 'react-native';
 
 export type StatCardColor = 'sky' | 'emerald' | 'amber' | 'violet' | 'indigo' | 'default';
 
-const colorMap: Record<StatCardColor, { bg: string; label: string; value: string }> = {
+const colorMap: Record<StatCardColor, { bg: string; label: string; value: string; shadow?: string }> = {
   indigo: {
     bg: 'bg-[#3B55D5]',
     label: 'text-[#BFCEFF]',
     value: 'text-white',
   },
   sky: {
-    bg: 'bg-sky-500',
-    label: 'text-sky-100',
-    value: 'text-white',
+    bg: 'bg-white dark:bg-[#1C1E38]',
+    label: 'text-[#8A8FA8]',
+    value: 'text-[#1A1F3C] dark:text-white',
   },
   emerald: {
-    bg: 'bg-emerald-500',
-    label: 'text-emerald-100',
-    value: 'text-white',
+    bg: 'bg-white dark:bg-[#1C1E38]',
+    label: 'text-[#8A8FA8]',
+    value: 'text-[#22C55E] dark:text-[#22C55E]',
   },
   amber: {
-    bg: 'bg-amber-400',
-    label: 'text-amber-900',
-    value: 'text-amber-950',
+    bg: 'bg-white dark:bg-[#1C1E38]',
+    label: 'text-[#8A8FA8]',
+    value: 'text-[#F59E0B] dark:text-[#F59E0B]',
   },
   violet: {
-    bg: 'bg-violet-500',
-    label: 'text-violet-100',
-    value: 'text-white',
+    bg: 'bg-white dark:bg-[#1C1E38]',
+    label: 'text-[#8A8FA8]',
+    value: 'text-[#8B5CF6] dark:text-[#8B5CF6]',
   },
   default: {
-    bg: 'bg-white dark:bg-zinc-900',
-    label: 'text-zinc-500 dark:text-zinc-400',
-    value: 'text-zinc-900 dark:text-white',
+    bg: 'bg-white dark:bg-[#1C1E38]',
+    label: 'text-[#8A8FA8]',
+    value: 'text-[#1A1F3C] dark:text-white',
   },
 };
 
@@ -43,8 +43,19 @@ type Props = {
 
 export function StatCard({ label, value, color = 'default' }: Props) {
   const styles = colorMap[color];
+  const isBlue = color === 'indigo';
+
   return (
-    <View className={`flex-1 rounded-2xl p-4 ${styles.bg}`}>
+    <View
+      className={`flex-1 rounded-2xl p-4 ${styles.bg}`}
+      style={{
+        shadowColor: isBlue ? '#3B55D5' : '#1A1F3C',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: isBlue ? 0.35 : 0.07,
+        shadowRadius: 12,
+        elevation: isBlue ? 6 : 2,
+      }}
+    >
       <Text className={`mb-1 text-xs font-semibold uppercase tracking-wide ${styles.label}`}>
         {label}
       </Text>

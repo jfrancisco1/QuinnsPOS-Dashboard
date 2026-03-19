@@ -16,14 +16,19 @@ export default function TabLayout() {
         tabBarInactiveTintColor: Colors[scheme].tabIconDefault,
         tabBarStyle: {
           backgroundColor: Colors[scheme].tabBarBackground,
-          borderTopColor: 'transparent',
-          borderTopWidth: 0,
-          height: 62,
-          paddingBottom: 8,
-          paddingTop: 6,
+          borderTopColor: scheme === 'dark' ? '#252845' : '#E8EAF6',
+          borderTopWidth: 1,
+          height: 64,
+          paddingBottom: 10,
+          paddingTop: 8,
+          elevation: 8,
+          shadowColor: '#3B55D5',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: '600',
         },
         headerShown: false,
@@ -54,7 +59,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          title: 'Sales',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
         }}
       />
