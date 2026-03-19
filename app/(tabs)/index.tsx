@@ -191,20 +191,40 @@ export default function DashboardScreen() {
       renderItem={({ item }) => (
         <TouchableOpacity
           onPress={() => router.push(`/order/${item.id}`)}
-          activeOpacity={0.7}
-          className="mx-4 mb-2 overflow-hidden rounded-2xl bg-white dark:bg-zinc-900"
+          activeOpacity={0.75}
+          className="mx-4 mb-3 overflow-hidden rounded-2xl bg-white shadow-sm dark:bg-zinc-900"
         >
-          <View className="w-1.5 absolute bottom-0 left-0 top-0 bg-rose-400" />
-          <View className="flex-row items-center justify-between py-3 pl-5 pr-4">
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-zinc-900 dark:text-white">
-                #{item.orderNumber}
+          {/* Left accent bar */}
+          <View className="w-1 absolute bottom-0 left-0 top-0 bg-rose-500" />
+
+          <View className="flex-row items-center py-4 pl-5 pr-4">
+            {/* Left: name + meta */}
+            <View className="flex-1 pr-3">
+              {/* Customer name — large and prominent */}
+              <Text className="text-lg font-bold text-zinc-900 dark:text-white" numberOfLines={1}>
+                {item.customer.nickname}
               </Text>
-              <Text className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                {item.customer.nickname} · {item.fulfillmentType}
-              </Text>
+
+              {/* Order number + fulfillment pill — small and subdued */}
+              <View className="mt-1.5 flex-row items-center gap-2">
+                <Text className="text-xs text-zinc-400 dark:text-zinc-500">
+                  #{item.orderNumber}
+                </Text>
+                <View className="rounded-full bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800">
+                  <Text className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    {item.fulfillmentType}
+                  </Text>
+                </View>
+                <View className="rounded-full bg-rose-50 px-2 py-0.5 dark:bg-rose-900/30">
+                  <Text className="text-[10px] font-bold uppercase tracking-wide text-rose-500">
+                    Unpaid
+                  </Text>
+                </View>
+              </View>
             </View>
-            <Text className="text-base font-bold text-rose-500">
+
+            {/* Right: amount — bold and large */}
+            <Text className="text-xl font-extrabold text-rose-500">
               {fmt(Number(item.total))}
             </Text>
           </View>
