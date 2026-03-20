@@ -1,4 +1,4 @@
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity } from 'react-native';
 
 import { router } from 'expo-router';
 
@@ -25,26 +25,12 @@ export function CategoryCard({ cat }: CategoryCardProps) {
     <TouchableOpacity
       onPress={openEdit}
       activeOpacity={0.75}
-      className="m-1.5 flex-1 rounded-2xl bg-white p-4 dark:bg-card-dark"
-      style={{
-        shadowColor: '#1A1F3C',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.07,
-        shadowRadius: 8,
-        elevation: 2,
-      }}
+      className="flex-row items-center border-b border-divide py-3.5 dark:border-divide-dark"
     >
-      <Text
-        className="text-sm font-semibold text-ink dark:text-white"
-        numberOfLines={1}
-      >
+      <Text className="flex-1 text-sm font-medium text-ink dark:text-white" numberOfLines={1}>
         {cat.name}
       </Text>
-      {!cat.is_active && (
-        <View className="mt-1.5">
-          <Badge label="Inactive" variant="warning" />
-        </View>
-      )}
+      {!cat.is_active && <Badge label="Inactive" variant="warning" />}
     </TouchableOpacity>
   );
 }

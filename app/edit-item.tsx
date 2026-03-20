@@ -95,7 +95,7 @@ export default function EditItemScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-white dark:bg-zinc-950">
+    <ScrollView className="flex-1 bg-page dark:bg-page-dark">
       <View className="gap-4 p-4">
         <TextInput label="Name *" placeholder="e.g. Wash & Fold" value={name} onChangeText={setName} />
         <TextInput
@@ -121,7 +121,7 @@ export default function EditItemScreen() {
 
         {/* Color picker */}
         <View>
-          <Text className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Color</Text>
+          <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">Color</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {ITEM_COLORS.map(hex => {
               const selected = color === hex;
@@ -135,7 +135,7 @@ export default function EditItemScreen() {
                     borderRadius: 16,
                     backgroundColor: hex,
                     borderWidth: selected ? 3 : 1.5,
-                    borderColor: selected ? '#18181b' : hex,
+                    borderColor: selected ? '#560591' : hex,
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -146,7 +146,7 @@ export default function EditItemScreen() {
                         width: 8,
                         height: 8,
                         borderRadius: 4,
-                        backgroundColor: hex === '#18181b' ? '#fff' : '#18181b',
+                        backgroundColor: '#fff',
                       }}
                     />
                   )}
@@ -158,11 +158,11 @@ export default function EditItemScreen() {
 
         {/* Shape picker */}
         <View>
-          <Text className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">Shape</Text>
+          <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">Shape</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {ITEM_SHAPES.map(s => {
               const selected = shape === s;
-              const fillColor = color ?? '#18181b';
+              const fillColor = color ?? '#560591';
               return (
                 <TouchableOpacity
                   key={s}
@@ -173,9 +173,9 @@ export default function EditItemScreen() {
                     borderRadius: 10,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: selected ? '#f4f4f5' : 'transparent',
+                    backgroundColor: selected ? '#ECEEFF' : 'transparent',
                     borderWidth: 1.5,
-                    borderColor: selected ? '#18181b' : '#d4d4d8',
+                    borderColor: selected ? '#560591' : '#E0E2F0',
                   }}
                 >
                   {s === 'circle' && (
@@ -192,7 +192,7 @@ export default function EditItemScreen() {
                       <View style={{ width: 20, height: 20, borderRadius: 2, backgroundColor: fillColor, transform: [{ rotate: '45deg' }] }} />
                     </View>
                   )}
-                  <Text style={{ fontSize: 9, marginTop: 4, color: '#71717a', textTransform: 'capitalize' }}>{s}</Text>
+                  <Text style={{ fontSize: 9, marginTop: 4, color: '#8A8FA8', textTransform: 'capitalize' }}>{s}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -201,11 +201,11 @@ export default function EditItemScreen() {
 
         {/* Category */}
         <View>
-          <Text className="mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+          <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">
             Category *
           </Text>
           {categories.length === 0 ? (
-            <Text className="text-sm text-zinc-400 dark:text-zinc-500">No categories found.</Text>
+            <Text className="text-sm text-muted">No categories found.</Text>
           ) : (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -219,12 +219,12 @@ export default function EditItemScreen() {
                         paddingHorizontal: 16,
                         paddingVertical: 8,
                         borderRadius: 999,
-                        backgroundColor: selected ? '#18181b' : 'transparent',
+                        backgroundColor: selected ? '#560591' : 'transparent',
                         borderWidth: 1.5,
-                        borderColor: '#18181b',
+                        borderColor: '#560591',
                       }}
                     >
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: selected ? '#fff' : '#18181b' }}>
+                      <Text style={{ fontSize: 13, fontWeight: '500', color: selected ? '#fff' : '#560591' }}>
                         {cat.name}
                       </Text>
                     </TouchableOpacity>
@@ -236,7 +236,7 @@ export default function EditItemScreen() {
         </View>
 
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Active</Text>
+          <Text className="text-sm font-medium text-subtle dark:text-subtle-dark">Active</Text>
           <Switch value={isActive} onValueChange={setIsActive} />
         </View>
 
@@ -245,10 +245,10 @@ export default function EditItemScreen() {
         <TouchableOpacity
           onPress={handleSave}
           disabled={isSubmitting}
-          className={`w-full items-center rounded-lg bg-zinc-900 py-3.5 dark:bg-white${isSubmitting ? ' opacity-50' : ''}`}
+          className={`w-full items-center rounded-xl bg-primary py-3.5${isSubmitting ? ' opacity-50' : ''}`}
           activeOpacity={0.8}
         >
-          <Text className="text-sm font-semibold text-white dark:text-zinc-900">
+          <Text className="text-sm font-semibold text-white">
             {isSubmitting ? 'Saving...' : 'Save Changes'}
           </Text>
         </TouchableOpacity>
@@ -256,7 +256,7 @@ export default function EditItemScreen() {
         <TouchableOpacity
           onPress={handleDelete}
           disabled={isDeleting}
-          className={`w-full items-center rounded-lg border border-red-300 py-3.5 dark:border-red-800${isDeleting ? ' opacity-50' : ''}`}
+          className={`w-full items-center rounded-xl border border-red-300 py-3.5 dark:border-red-800${isDeleting ? ' opacity-50' : ''}`}
           activeOpacity={0.8}
         >
           <Text className="text-sm font-semibold text-red-600 dark:text-red-400">

@@ -8,7 +8,6 @@ import { ItemCard } from '@/components/items/item-card';
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { FAB } from '@/components/ui/fab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { SegmentedControl } from '@/components/ui/segmented-control';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
 import { getCategories, getItems, type Category, type Item } from '@/lib/api';
@@ -23,7 +22,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
 
 export default function CatalogScreen() {
   const { token } = useAuth();
-  const { loadBranches } = useBranch();
+  const { selectedBranch, loadBranches } = useBranch();
   const [tab, setTab] = useState(0);
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -57,37 +56,54 @@ export default function CatalogScreen() {
     }));
   })();
 
+  const TABS = ['Items', 'Categories'];
+
   return (
-    <View className="flex-1 bg-white dark:bg-page-dark">
-      <View
-        className="bg-white px-5 pb-4 pt-14 dark:bg-card-dark"
-        style={{
-          shadowColor: '#1A1F3C',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-      >
-        <View className="flex-row items-center justify-between">
-          <Text className="text-2xl font-bold text-ink dark:text-white">Items</Text>
+    <View className="flex-1 bg-page dark:bg-page-dark">
+      <View className="bg-primary px-5 pb-5 pt-14 dark:bg-primary-700">
+        {/* Title row */}
+        <View className="flex-row items-center">
+          <View className="absolute left-0 right-0 items-center">
+            <Text className="text-xl font-bold text-white">Catalog</Text>
+            {selectedBranch ? (
+              <Text className="text-xs font-semibold text-primary-100" numberOfLines={1}>
+                {selectedBranch.name}
+              </Text>
+            ) : (
+              <Text className="text-xs text-primary-200">All Branches</Text>
+            )}
+          </View>
+          <View className="flex-1" />
           <TouchableOpacity
             onPress={() => setBranchModalVisible(true)}
             activeOpacity={0.75}
-            className="rounded-2xl bg-chip p-2.5 dark:bg-chip-dark"
+            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
           >
-            <IconSymbol name="storefront.fill" size={20} color="#560591" />
+            <IconSymbol name="storefront.fill" size={20} color="#fff" />
           </TouchableOpacity>
+        </View>
+
+        {/* Items / Categories toggle */}
+        <View className="mt-3 flex-row gap-2">
+          {TABS.map((label, index) => {
+            const active = tab === index;
+            return (
+              <TouchableOpacity
+                key={label}
+                onPress={() => setTab(index)}
+                activeOpacity={0.75}
+                className={`flex-1 items-center rounded-full py-1.5 ${active ? 'bg-white' : 'bg-white/20'}`}
+              >
+                <Text className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
       <BranchPickerModal visible={branchModalVisible} onClose={() => setBranchModalVisible(false)} />
-
-      <SegmentedControl
-        options={['Items', 'Categories']}
-        selectedIndex={tab}
-        onChange={setTab}
-      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -123,9 +139,8 @@ export default function CatalogScreen() {
         <FlatList
           key="categories"
           data={categories}
-          numColumns={2}
           keyExtractor={(cat, index) => String(cat.id ?? index)}
-          contentContainerStyle={{ padding: 6 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           renderItem={({ item: cat }) => <CategoryCard cat={cat} />}
           ListEmptyComponent={
             <View className="items-center py-20">

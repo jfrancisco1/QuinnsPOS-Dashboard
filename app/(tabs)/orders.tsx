@@ -24,12 +24,15 @@ function paymentVariant(status: string): BadgeVariant {
   }
 }
 
+const STATUS_TABS = ['All', 'Paid', 'Unpaid', 'Partial'];
+
 export default function OrdersScreen() {
   const { token } = useAuth();
   const { selectedBranch, loadBranches } = useBranch();
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [branchModalVisible, setBranchModalVisible] = useState(false);
+  const [statusTab, setStatusTab] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -47,40 +50,60 @@ export default function OrdersScreen() {
     }, [token, loadBranches]),
   );
 
-  const orders = selectedBranch
+  const branchFiltered = selectedBranch
     ? allOrders.filter((o) => o.branch?.id === selectedBranch.id)
     : allOrders;
 
+  const orders =
+    statusTab === 0
+      ? branchFiltered
+      : branchFiltered.filter(
+          (o) => o.paymentStatus?.toLowerCase() === STATUS_TABS[statusTab].toLowerCase(),
+        );
+
   return (
-    <View className="flex-1 bg-white dark:bg-page-dark">
+    <View className="flex-1 bg-page dark:bg-page-dark">
       {/* Header */}
-      <View
-        className="bg-white px-5 pb-4 pt-14 dark:bg-card-dark"
-        style={{
-          shadowColor: '#1A1F3C',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.06,
-          shadowRadius: 8,
-          elevation: 3,
-        }}
-      >
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="text-2xl font-bold text-ink dark:text-white">Orders</Text>
+      <View className="bg-primary px-5 pb-5 pt-14 dark:bg-primary-700">
+        {/* Title row */}
+        <View className="flex-row items-center">
+          <View className="absolute left-0 right-0 items-center">
+            <Text className="text-xl font-bold text-white">Orders</Text>
             {selectedBranch ? (
-              <Text className="mt-0.5 text-xs font-semibold text-subtle dark:text-muted-dark">
+              <Text className="text-xs font-semibold text-primary-100" numberOfLines={1}>
                 {selectedBranch.name}
               </Text>
-            ) : null}
+            ) : (
+              <Text className="text-xs text-primary-200">All Branches</Text>
+            )}
           </View>
-
+          <View className="flex-1" />
           <TouchableOpacity
             onPress={() => setBranchModalVisible(true)}
             activeOpacity={0.75}
-            className="rounded-2xl bg-chip p-2.5 dark:bg-chip-dark"
+            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
           >
-            <IconSymbol name="storefront.fill" size={20} color="#560591" />
+            <IconSymbol name="storefront.fill" size={20} color="#fff" />
           </TouchableOpacity>
+        </View>
+
+        {/* Status filter tabs */}
+        <View className="mt-3 flex-row gap-2">
+          {STATUS_TABS.map((label, index) => {
+            const active = statusTab === index;
+            return (
+              <TouchableOpacity
+                key={label}
+                onPress={() => setStatusTab(index)}
+                activeOpacity={0.75}
+                className={`flex-1 items-center rounded-full py-1.5 ${active ? 'bg-white' : 'bg-white/20'}`}
+              >
+                <Text className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
@@ -109,7 +132,7 @@ export default function OrdersScreen() {
           )}
           ListEmptyComponent={
             <View className="items-center py-20">
-              <Text className="text-sm text-muted">No orders yet</Text>
+              <Text className="text-sm text-muted">No orders found</Text>
             </View>
           }
         />
