@@ -91,7 +91,7 @@ export default function DateRangeScreen() {
   return (
     <View className="flex-1 bg-[#F5F6FA] dark:bg-[#12142A]">
       {/* Header */}
-      <View className="bg-[#3B55D5] px-5 pb-5 pt-14 dark:bg-[#2A3BAF]">
+      <View className="bg-[#560591] px-5 pb-5 pt-14 dark:bg-[#400070]">
         <View className="flex-row items-center justify-between">
           <TouchableOpacity
             onPress={() => router.back()}
@@ -109,7 +109,7 @@ export default function DateRangeScreen() {
           >
             <Text
               className="text-sm font-semibold"
-              style={{ color: canApply ? '#3B55D5' : 'rgba(255,255,255,0.45)' }}
+              style={{ color: canApply ? '#560591' : 'rgba(255,255,255,0.45)' }}
             >
               Apply
             </Text>
@@ -125,7 +125,7 @@ export default function DateRangeScreen() {
             className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-[#1C1E38]"
             style={{ shadowColor: '#1A1F3C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 }}
           >
-            <Text className="text-lg font-bold text-[#3B55D5]">‹</Text>
+            <Text className="text-lg font-bold text-[#560591]">‹</Text>
           </TouchableOpacity>
 
           <Text className="text-base font-bold text-[#1A1F3C] dark:text-white">
@@ -137,7 +137,7 @@ export default function DateRangeScreen() {
             className="h-10 w-10 items-center justify-center rounded-2xl bg-white dark:bg-[#1C1E38]"
             style={{ shadowColor: '#1A1F3C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 6, elevation: 2 }}
           >
-            <Text className="text-lg font-bold text-[#3B55D5]">›</Text>
+            <Text className="text-lg font-bold text-[#560591]">›</Text>
           </TouchableOpacity>
         </View>
 
@@ -172,7 +172,7 @@ export default function DateRangeScreen() {
                   <View
                     className={`h-9 w-9 items-center justify-center rounded-full ${
                       isSelected
-                        ? 'bg-[#3B55D5]'
+                        ? 'bg-[#560591]'
                         : inRange
                           ? 'bg-[#DDEEFF] dark:bg-[#252845]'
                           : ''

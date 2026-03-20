@@ -14,12 +14,12 @@ const AppLightTheme: Theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#3B55D5',
+    primary: '#560591',
     background: '#FFFFFF',
     card: '#FFFFFF',
     text: '#111827',
     border: '#E5E7EB',
-    notification: '#3B55D5',
+    notification: '#560591',
   },
 };
 
@@ -27,12 +27,12 @@ const AppDarkTheme: Theme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#7B9EFF',
+    primary: '#9130F0',
     background: '#0F172A',
     card: '#1E2B6B',
     text: '#F9FAFB',
     border: '#1E293B',
-    notification: '#7B9EFF',
+    notification: '#9130F0',
   },
 };
 

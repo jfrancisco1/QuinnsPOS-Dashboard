@@ -76,7 +76,7 @@ export default function CatalogScreen() {
             activeOpacity={0.75}
             className="rounded-2xl bg-chip p-2.5 dark:bg-chip-dark"
           >
-            <IconSymbol name="storefront.fill" size={20} color="#3B55D5" />
+            <IconSymbol name="storefront.fill" size={20} color="#560591" />
           </TouchableOpacity>
         </View>
       </View>

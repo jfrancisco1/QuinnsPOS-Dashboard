@@ -49,7 +49,7 @@ export function StatCard({ label, value, color = 'default' }: StatCardProps) {
     <View
       className={`flex-1 rounded-2xl p-4 ${styles.bg}`}
       style={{
-        shadowColor: isBlue ? '#3B55D5' : '#1A1F3C',
+        shadowColor: isBlue ? '#560591' : '#1A1F3C',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: isBlue ? 0.35 : 0.07,
         shadowRadius: 12,

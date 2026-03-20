@@ -22,7 +22,7 @@ export default function TabLayout() {
           paddingBottom: 10,
           paddingTop: 8,
           elevation: 8,
-          shadowColor: '#3B55D5',
+          shadowColor: '#560591',
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.06,
           shadowRadius: 8,
@@ -38,8 +38,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+          title: 'Sales',
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -54,13 +54,6 @@ export default function TabLayout() {
         options={{
           title: 'Items',
           tabBarIcon: ({ color }) => <IconSymbol size={26} name="tag.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: 'Sales',
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="chart.bar.fill" color={color} />,
         }}
       />
     </Tabs>

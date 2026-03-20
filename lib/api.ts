@@ -91,6 +91,8 @@ export type SalesByItem = {
   net_sales: number;
   cost_of_goods: number;
   gross_profit: number;
+  color: string | null;
+  shape: string | null;
 };
 
 export type Expense = {
