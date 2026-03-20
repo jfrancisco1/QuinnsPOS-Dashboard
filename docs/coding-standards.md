@@ -28,6 +28,19 @@ import { ThemedText } from '../../components/themed-text';
 
 ---
 
+## Project Structure
+
+The codebase follows a **modular, component-based architecture**. Each feature or UI concern is broken into small, focused, reusable units:
+
+- **Screens** (`app/`) orchestrate layout and data flow — they should be thin and delegate rendering to components.
+- **Components** (`components/`) are self-contained, reusable UI pieces. Group related components in a subdirectory (e.g., `components/orders/`, `components/reports/`).
+- **Hooks** (`hooks/`) encapsulate all non-trivial state, effects, and business logic — keeping it out of components and screens.
+- **Lib** (`lib/`) holds shared utilities and the API client — nothing UI-specific goes here.
+
+Avoid placing business logic directly in screens. If a screen grows complex, split it into child components and extract logic into hooks.
+
+---
+
 ## Components
 
 - **Named exports** for all components (no default exports except route screens in `app/`).

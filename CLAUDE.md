@@ -48,6 +48,7 @@ Full endpoint schemas are in [`docs/coding-standards.md`](docs/coding-standards.
 
 Full standards are in [`docs/coding-standards.md`](docs/coding-standards.md). Key rules:
 
+- **Modular, component-based structure** — screens are thin orchestrators; UI and logic live in `components/` and `hooks/`; group related components in subdirectories (e.g., `components/orders/`)
 - **No hardcoded colors** — use NativeWind `className` with `dark:` utilities; add semantic tokens to `tailwind.config.js`
 - **Styling**: NativeWind `className` is the primary mechanism — avoid `StyleSheet.create()` for new components
 - **Named exports** for all components except route screens (`app/`), which use `export default`

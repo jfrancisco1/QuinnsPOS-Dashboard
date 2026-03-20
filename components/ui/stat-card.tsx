@@ -2,46 +2,46 @@ import { Text, View } from 'react-native';
 
 export type StatCardColor = 'sky' | 'emerald' | 'amber' | 'violet' | 'indigo' | 'default';
 
-const colorMap: Record<StatCardColor, { bg: string; label: string; value: string; shadow?: string }> = {
+const colorMap: Record<StatCardColor, { bg: string; label: string; value: string }> = {
   indigo: {
-    bg: 'bg-[#3B55D5]',
-    label: 'text-[#BFCEFF]',
+    bg: 'bg-primary',
+    label: 'text-primary-200',
     value: 'text-white',
   },
   sky: {
-    bg: 'bg-white dark:bg-[#1C1E38]',
-    label: 'text-[#8A8FA8]',
-    value: 'text-[#1A1F3C] dark:text-white',
+    bg: 'bg-white dark:bg-card-dark',
+    label: 'text-muted',
+    value: 'text-ink dark:text-white',
   },
   emerald: {
-    bg: 'bg-white dark:bg-[#1C1E38]',
-    label: 'text-[#8A8FA8]',
-    value: 'text-[#22C55E] dark:text-[#22C55E]',
+    bg: 'bg-white dark:bg-card-dark',
+    label: 'text-muted',
+    value: 'text-green-500 dark:text-green-500',
   },
   amber: {
-    bg: 'bg-white dark:bg-[#1C1E38]',
-    label: 'text-[#8A8FA8]',
-    value: 'text-[#F59E0B] dark:text-[#F59E0B]',
+    bg: 'bg-white dark:bg-card-dark',
+    label: 'text-muted',
+    value: 'text-amber-400 dark:text-amber-400',
   },
   violet: {
-    bg: 'bg-white dark:bg-[#1C1E38]',
-    label: 'text-[#8A8FA8]',
-    value: 'text-[#8B5CF6] dark:text-[#8B5CF6]',
+    bg: 'bg-white dark:bg-card-dark',
+    label: 'text-muted',
+    value: 'text-violet-500 dark:text-violet-500',
   },
   default: {
-    bg: 'bg-white dark:bg-[#1C1E38]',
-    label: 'text-[#8A8FA8]',
-    value: 'text-[#1A1F3C] dark:text-white',
+    bg: 'bg-white dark:bg-card-dark',
+    label: 'text-muted',
+    value: 'text-ink dark:text-white',
   },
 };
 
-type Props = {
+export type StatCardProps = {
   label: string;
   value: string;
   color?: StatCardColor;
 };
 
-export function StatCard({ label, value, color = 'default' }: Props) {
+export function StatCard({ label, value, color = 'default' }: StatCardProps) {
   const styles = colorMap[color];
   const isBlue = color === 'indigo';
 
