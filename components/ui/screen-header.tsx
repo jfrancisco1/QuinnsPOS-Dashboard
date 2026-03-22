@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -11,8 +12,9 @@ type Props = {
 };
 
 export function ScreenHeader({ title, subtitle, onBranchPress, children }: Props) {
+  const insets = useSafeAreaInsets();
   return (
-    <View className="bg-primary px-5 pb-5 pt-14 dark:bg-primary-700">
+    <View className="bg-primary px-5 pb-5 dark:bg-primary-700" style={{ paddingTop: insets.top + 12 }}>
       <View className="flex-row items-center">
         <View className="absolute left-0 right-0 items-center">
           <Text className="text-xl font-bold text-white">{title}</Text>
