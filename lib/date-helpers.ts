@@ -49,10 +49,12 @@ export function getPeriodLabel(
   customFrom: string,
   customTo: string,
 ): string {
+  const PH = 'Asia/Manila';
+
   if (period === 'custom') {
     if (customFrom && customTo) {
       const fmt = (s: string) =>
-        new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        parseLocalISO(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: PH });
       return `${fmt(customFrom)} – ${fmt(customTo)}`;
     }
     return 'Custom';
@@ -63,23 +65,24 @@ export function getPeriodLabel(
   if (period === 'today') {
     if (offset === 0) return 'Today';
     if (offset === -1) return 'Yesterday';
-    return new Date(from).toLocaleDateString('en-US', {
+    return parseLocalISO(from).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
+      timeZone: PH,
     });
   }
 
   if (period === 'this_week') {
     if (offset === 0) return 'This Week';
     if (offset === -1) return 'Last Week';
-    const f = new Date(from).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const t = new Date(to).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const f = parseLocalISO(from).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: PH });
+    const t = parseLocalISO(to).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: PH });
     return `${f} – ${t}`;
   }
 
   if (period === 'this_month') {
-    return new Date(from).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return parseLocalISO(from).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: PH });
   }
 
   return new Date(from).getFullYear().toString();

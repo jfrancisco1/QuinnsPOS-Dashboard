@@ -25,23 +25,19 @@ export default function SalesScreen() {
 
   const {
     period,
-    offset,
     setOffset,
     summary,
     salesByItem,
     itemsMap,
     salesByPayment,
     dailySummaries,
+    granularity,
     loading,
     totalExpenses,
     grossProfit,
-    netProfit,
     periodLabel,
     canGoForward,
     canGoBack,
-    isSingleDay,
-    isTimeSeries,
-    customGranularity,
     handlePeriodSelect,
   } = useSalesData({ token, selectedBranch });
 
@@ -104,27 +100,17 @@ export default function SalesScreen() {
         </View>
       ) : (
         <View className="gap-4 px-5 pb-10 pt-4">
-          {!isSingleDay && (
-            <SalesOverviewChart
-              period={period}
-              offset={offset}
-              isTimeSeries={isTimeSeries}
-              dailySummaries={dailySummaries}
-              summary={summary}
-              grossProfit={grossProfit}
-              totalExpenses={totalExpenses}
-              netProfit={netProfit}
-              customGranularity={customGranularity}
-              containerWidth={chartContainerWidth}
-              onLayout={setChartContainerWidth}
-            />
-          )}
+          <SalesOverviewChart
+            granularity={granularity}
+            dailySummaries={dailySummaries}
+            containerWidth={chartContainerWidth}
+            onLayout={setChartContainerWidth}
+          />
 
           <BreakdownCard
             summary={summary}
             grossProfit={grossProfit}
             totalExpenses={totalExpenses}
-            netProfit={netProfit}
           />
 
           <SalesByItemsCard salesByItem={salesByItem} itemsMap={itemsMap} />

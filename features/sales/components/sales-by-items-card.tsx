@@ -1,9 +1,9 @@
-import { Text, View } from 'react-native';
+import { Text, View } from "react-native";
 
-import { Card } from '@/components/ui/card';
-import { ItemShapeSwatch } from '@/features/catalog/components/item-shape-swatch';
-import { fmtPeso } from '@/features/sales/utils';
-import { type Item, type SalesByItem } from '@/lib/api';
+import { Card } from "@/components/ui/card";
+import { ItemShapeSwatch } from "@/features/catalog/components/item-shape-swatch";
+import { fmtPeso } from "@/features/sales/utils";
+import { type Item, type SalesByItem } from "@/lib/api";
 
 type Props = {
   salesByItem: SalesByItem[];
@@ -22,11 +22,11 @@ export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
         return (
           <View key={row.item_id}>
             <View className="flex-row items-center justify-between py-2.5">
-              <View className="flex-1 flex-row items-center gap-3 pr-4">
+              <View className="flex-1 flex-row items-center gap-2">
                 {color && shape && (
                   <View
-                    className="h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: color + '1A' }}
+                    className="h-9 w-9 items-center justify-center rounded-2xl"
+                    style={{ backgroundColor: color + "1A" }}
                   >
                     <ItemShapeSwatch color={color} shape={shape} />
                   </View>
@@ -40,7 +40,9 @@ export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
                   </Text>
                 </View>
               </View>
-              <Text className="text-sm font-bold text-primary">{fmtPeso(row.net_sales)}</Text>
+              <Text className="text-sm font-bold text-primary">
+                {fmtPeso(row.net_sales)}
+              </Text>
             </View>
             {i < salesByItem.length - 1 && (
               <View className="h-px bg-divide dark:bg-divide-dark" />

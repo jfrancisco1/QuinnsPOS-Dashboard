@@ -1,11 +1,13 @@
-const BASE_URL = 'https://laundryappapi-production.up.railway.app/api/v1';
+const BASE_URL = "https://laundryappapi-production.up.railway.app/api/v1";
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
 export type LoginPayload = { username: string; password: string };
 export type LoginSuccess = { token: string };
 export type ApiError = { message: string; status: number };
-export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: ApiError };
+export type ApiResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: ApiError };
 
 // ─── Domain types ─────────────────────────────────────────────────────────────
 
@@ -76,11 +78,16 @@ export type Order = {
 export type SalesSummary = {
   from: string;
   to: string;
+  branch: number | null;
   grossSales: number;
-  discounts: number;
   netSales: number;
   costOfGoods: number;
   grossProfit: number;
+  expenses: number;
+  netProfit: number;
+  unpaid: { orders: number; grossSales: number };
+  group_by: "hour" | "day" | "month" | "year";
+  series: { label: string; gross_sales: number }[];
 };
 
 export type SalesByItem = {
@@ -133,10 +140,10 @@ export type CreateExpensePayload = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function extractObject<T>(json: unknown): T | null {
-  if (typeof json === 'object' && json !== null) {
+  if (typeof json === "object" && json !== null) {
     const j = json as Record<string, unknown>;
-    if ('data' in j && typeof j['data'] === 'object' && j['data'] !== null) {
-      return j['data'] as T;
+    if ("data" in j && typeof j["data"] === "object" && j["data"] !== null) {
+      return j["data"] as T;
     }
   }
   return null;
@@ -144,9 +151,16 @@ function extractObject<T>(json: unknown): T | null {
 
 function extractArray<T>(json: unknown): T[] {
   if (Array.isArray(json)) return json as T[];
-  if (typeof json === 'object' && json !== null) {
+  if (typeof json === "object" && json !== null) {
     const j = json as Record<string, unknown>;
-    for (const key of ['data', 'orders', 'items', 'categories', 'expenses', 'branches']) {
+    for (const key of [
+      "data",
+      "orders",
+      "items",
+      "categories",
+      "expenses",
+      "branches",
+    ]) {
       if (Array.isArray(j[key])) return j[key] as T[];
     }
   }
@@ -154,10 +168,10 @@ function extractArray<T>(json: unknown): T[] {
 }
 
 function extractToken(json: unknown): string | null {
-  if (typeof json !== 'object' || json === null) return null;
+  if (typeof json !== "object" || json === null) return null;
   const j = json as Record<string, unknown>;
-  const raw = j['token'] ?? j['access_token'] ?? j['access'];
-  return typeof raw === 'string' ? raw : null;
+  const raw = j["token"] ?? j["access_token"] ?? j["access"];
+  return typeof raw === "string" ? raw : null;
 }
 
 async function authFetch<T>(
@@ -169,7 +183,7 @@ async function authFetch<T>(
     const response = await fetch(`${BASE_URL}${path}`, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
         ...(options.headers ?? {}),
       },
@@ -179,20 +193,23 @@ async function authFetch<T>(
       return { ok: true, data: json as T };
     }
     const err = json as Record<string, unknown>;
-    const message = typeof err['message'] === 'string' ? err['message'] : 'Request failed';
+    const message =
+      typeof err["message"] === "string" ? err["message"] : "Request failed";
     return { ok: false, error: { message, status: response.status } };
   } catch {
-    return { ok: false, error: { message: 'Network error', status: 0 } };
+    return { ok: false, error: { message: "Network error", status: 0 } };
   }
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 
-export async function loginRequest(payload: LoginPayload): Promise<ApiResult<LoginSuccess>> {
+export async function loginRequest(
+  payload: LoginPayload,
+): Promise<ApiResult<LoginSuccess>> {
   try {
     const response = await fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const json: unknown = await response.json();
@@ -201,42 +218,51 @@ export async function loginRequest(payload: LoginPayload): Promise<ApiResult<Log
       if (!token) {
         return {
           ok: false,
-          error: { message: 'Unexpected response from server', status: response.status },
+          error: {
+            message: "Unexpected response from server",
+            status: response.status,
+          },
         };
       }
       return { ok: true, data: { token } };
     }
     const errorJson = json as Record<string, unknown>;
     const message =
-      typeof errorJson['message'] === 'string'
-        ? errorJson['message']
-        : typeof errorJson['error'] === 'string'
-          ? errorJson['error']
-          : 'Invalid credentials';
+      typeof errorJson["message"] === "string"
+        ? errorJson["message"]
+        : typeof errorJson["error"] === "string"
+          ? errorJson["error"]
+          : "Invalid credentials";
     return { ok: false, error: { message, status: response.status } };
   } catch {
-    return { ok: false, error: { message: 'Network error', status: 0 } };
+    return { ok: false, error: { message: "Network error", status: 0 } };
   }
 }
 
 export function logoutRequest(token: string) {
-  return authFetch<null>(token, '/logout', { method: 'POST' });
+  return authFetch<null>(token, "/logout", { method: "POST" });
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export async function getOrders(token: string): Promise<ApiResult<Order[]>> {
-  const result = await authFetch<unknown>(token, '/orders');
+  const result = await authFetch<unknown>(token, "/orders");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Order>(result.data) };
 }
 
-export async function getOrderByNumber(token: string, id: string): Promise<ApiResult<Order>> {
+export async function getOrderByNumber(
+  token: string,
+  id: string,
+): Promise<ApiResult<Order>> {
   const result = await authFetch<unknown>(token, `/orders/${id}`);
   if (!result.ok) return result;
   const order = extractObject<Order>(result.data);
   if (!order) {
-    return { ok: false, error: { message: 'Unexpected response shape', status: 0 } };
+    return {
+      ok: false,
+      error: { message: "Unexpected response shape", status: 0 },
+    };
   }
   return { ok: true, data: order };
 }
@@ -245,18 +271,21 @@ export async function getOrderByNumber(token: string, id: string): Promise<ApiRe
 
 export async function getSalesSummary(
   token: string,
-  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  period: "today" | "this_week" | "this_month" | "this_year" | "custom",
   opts?: { from?: string; to?: string; branch_id?: number },
 ): Promise<ApiResult<SalesSummary>> {
   const params = new URLSearchParams();
-  if (period === 'custom') {
-    if (opts?.from) params.set('from', opts.from);
-    if (opts?.to) params.set('to', opts.to);
+  if (period === "custom") {
+    if (opts?.from) params.set("from", opts.from);
+    if (opts?.to) params.set("to", opts.to);
   } else {
-    params.set('period', period);
+    params.set("period", period);
   }
-  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
-  const result = await authFetch<unknown>(token, `/reports/sales?${params.toString()}`);
+  if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  const result = await authFetch<unknown>(
+    token,
+    `/reports/sales?${params.toString()}`,
+  );
   if (!result.ok) return result;
   const summary = extractObject<SalesSummary>(result.data);
   const data = summary ?? (result.data as SalesSummary);
@@ -267,44 +296,51 @@ export type SalesByPaymentType = {
   payment_method: string;
   transactions: number;
   payment_amount: number;
-  net_amount: number;
 };
 
 export async function getSalesByPaymentType(
   token: string,
-  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  period: "today" | "this_week" | "this_month" | "this_year" | "custom",
   opts?: { from?: string; to?: string; branch_id?: number },
 ): Promise<ApiResult<SalesByPaymentType[]>> {
   const params = new URLSearchParams();
-  if (period === 'custom') {
-    if (opts?.from) params.set('from', opts.from);
-    if (opts?.to) params.set('to', opts.to);
+  if (period === "custom") {
+    if (opts?.from) params.set("from", opts.from);
+    if (opts?.to) params.set("to", opts.to);
   } else {
-    params.set('period', period);
+    params.set("period", period);
   }
-  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
-  const result = await authFetch<unknown>(token, `/reports/sales-by-payment-type?${params.toString()}`);
+  if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  const result = await authFetch<unknown>(
+    token,
+    `/reports/sales-by-payment-type?${params.toString()}`,
+  );
   if (!result.ok) return result;
   // response wraps data under "breakdown"
   const raw = result.data as Record<string, unknown>;
-  const breakdown = Array.isArray(raw['breakdown']) ? (raw['breakdown'] as SalesByPaymentType[]) : [];
+  const breakdown = Array.isArray(raw["breakdown"])
+    ? (raw["breakdown"] as SalesByPaymentType[])
+    : [];
   return { ok: true, data: breakdown };
 }
 
 export async function getSalesByItem(
   token: string,
-  period: 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom',
+  period: "today" | "this_week" | "this_month" | "this_year" | "custom",
   opts?: { from?: string; to?: string; branch_id?: number },
 ): Promise<ApiResult<SalesByItem[]>> {
   const params = new URLSearchParams();
-  if (period === 'custom') {
-    if (opts?.from) params.set('from', opts.from);
-    if (opts?.to) params.set('to', opts.to);
+  if (period === "custom") {
+    if (opts?.from) params.set("from", opts.from);
+    if (opts?.to) params.set("to", opts.to);
   } else {
-    params.set('period', period);
+    params.set("period", period);
   }
-  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
-  const result = await authFetch<unknown>(token, `/reports/sales-by-item?${params.toString()}`);
+  if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  const result = await authFetch<unknown>(
+    token,
+    `/reports/sales-by-item?${params.toString()}`,
+  );
   if (!result.ok) return result;
   return { ok: true, data: extractArray<SalesByItem>(result.data) };
 }
@@ -312,67 +348,94 @@ export async function getSalesByItem(
 // ─── Items ────────────────────────────────────────────────────────────────────
 
 export async function getItems(token: string): Promise<ApiResult<Item[]>> {
-  const result = await authFetch<unknown>(token, '/items');
+  const result = await authFetch<unknown>(token, "/items");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Item>(result.data) };
 }
 
 export function createItem(token: string, data: CreateItemPayload) {
-  return authFetch<Item>(token, '/items', { method: 'POST', body: JSON.stringify(data) });
+  return authFetch<Item>(token, "/items", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export function getItemById(token: string, id: number) {
   return authFetch<Item>(token, `/items/${id}`);
 }
 
-export function updateItem(token: string, id: number, data: Partial<CreateItemPayload>) {
-  return authFetch<Item>(token, `/items/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export function updateItem(
+  token: string,
+  id: number,
+  data: Partial<CreateItemPayload>,
+) {
+  return authFetch<Item>(token, `/items/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export function deleteItem(token: string, id: number) {
-  return authFetch<null>(token, `/items/${id}`, { method: 'DELETE' });
+  return authFetch<null>(token, `/items/${id}`, { method: "DELETE" });
 }
 
 // ─── Categories ───────────────────────────────────────────────────────────────
 
-export async function getCategories(token: string): Promise<ApiResult<Category[]>> {
-  const result = await authFetch<unknown>(token, '/categories');
+export async function getCategories(
+  token: string,
+): Promise<ApiResult<Category[]>> {
+  const result = await authFetch<unknown>(token, "/categories");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Category>(result.data) };
 }
 
 export function createCategory(token: string, data: CreateCategoryPayload) {
-  return authFetch<Category>(token, '/categories', { method: 'POST', body: JSON.stringify(data) });
+  return authFetch<Category>(token, "/categories", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export function getCategoryById(token: string, id: number) {
   return authFetch<Category>(token, `/categories/${id}`);
 }
 
-export function updateCategory(token: string, id: number, data: Partial<CreateCategoryPayload>) {
-  return authFetch<Category>(token, `/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export function updateCategory(
+  token: string,
+  id: number,
+  data: Partial<CreateCategoryPayload>,
+) {
+  return authFetch<Category>(token, `/categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export function deleteCategory(token: string, id: number) {
-  return authFetch<null>(token, `/categories/${id}`, { method: 'DELETE' });
+  return authFetch<null>(token, `/categories/${id}`, { method: "DELETE" });
 }
 
 // ─── Branches ─────────────────────────────────────────────────────────────────
 
 export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
-  const result = await authFetch<unknown>(token, '/branches');
+  const result = await authFetch<unknown>(token, "/branches");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Branch>(result.data) };
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
-export async function getExpenses(token: string): Promise<ApiResult<Expense[]>> {
-  const result = await authFetch<unknown>(token, '/expenses');
+export async function getExpenses(
+  token: string,
+): Promise<ApiResult<Expense[]>> {
+  const result = await authFetch<unknown>(token, "/expenses");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Expense>(result.data) };
 }
 
 export function createExpense(token: string, data: CreateExpensePayload) {
-  return authFetch<Expense>(token, '/expenses', { method: 'POST', body: JSON.stringify(data) });
+  return authFetch<Expense>(token, "/expenses", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
