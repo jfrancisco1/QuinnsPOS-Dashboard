@@ -3,37 +3,10 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 
-import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
+import { paymentVariant, statusVariant } from '@/features/orders/utils';
 import { getOrderByNumber, type Order } from '@/lib/api';
-
-function paymentVariant(status: string): BadgeVariant {
-  switch (status?.toLowerCase()) {
-    case 'paid':
-      return 'success';
-    case 'unpaid':
-      return 'danger';
-    case 'partial':
-      return 'warning';
-    default:
-      return 'default';
-  }
-}
-
-function statusVariant(status: string): BadgeVariant {
-  switch (status?.toLowerCase()) {
-    case 'completed':
-      return 'success';
-    case 'pending':
-      return 'warning';
-    case 'in_progress':
-      return 'info';
-    case 'cancelled':
-      return 'danger';
-    default:
-      return 'default';
-  }
-}
 
 export default function OrderDetailScreen() {
   const { token } = useAuth();
@@ -43,7 +16,7 @@ export default function OrderDetailScreen() {
 
   useEffect(() => {
     if (!token || !orderNumber) return;
-    getOrderByNumber(token, orderNumber).then(result => {
+    getOrderByNumber(token, orderNumber).then((result) => {
       if (result.ok) setOrder(result.data);
       setLoading(false);
     });

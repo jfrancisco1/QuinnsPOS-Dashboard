@@ -1,16 +1,16 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { FlatList, SectionList, Text, TouchableOpacity, View } from 'react-native';
 
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 
-import { CategoryCard } from '@/components/items/category-card';
-import { ItemCard } from '@/components/items/item-card';
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { FAB } from '@/components/ui/fab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
-import { getCategories, getItems, type Category, type Item } from '@/lib/api';
+import { CategoryCard } from '@/features/catalog/components/category-card';
+import { ItemCard } from '@/features/catalog/components/item-card';
+import { useCatalog } from '@/features/catalog/hooks/use-catalog';
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -20,31 +20,18 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
+const TABS = ['Items', 'Categories'];
+
 export default function CatalogScreen() {
   const { token } = useAuth();
   const { selectedBranch, loadBranches } = useBranch();
   const [tab, setTab] = useState(0);
-  const [items, setItems] = useState<Item[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [branchModalVisible, setBranchModalVisible] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!token) return;
-      setLoading(true);
-      Promise.all([getItems(token), getCategories(token), loadBranches(token)]).then(
-        ([itemsRes, catsRes]) => {
-          if (itemsRes.ok) setItems(itemsRes.data);
-          if (catsRes.ok) setCategories(catsRes.data);
-          setLoading(false);
-        },
-      );
-    }, [token, loadBranches]),
-  );
+  const { items, categories, loading } = useCatalog({ token, loadBranches });
 
   const sections = (() => {
-    const map = new Map<string, Item[]>();
+    const map = new Map<string, typeof items>();
     for (const item of items) {
       const key = item.category?.name ?? 'Uncategorized';
       if (!map.has(key)) map.set(key, []);
@@ -56,34 +43,13 @@ export default function CatalogScreen() {
     }));
   })();
 
-  const TABS = ['Items', 'Categories'];
-
   return (
     <View className="flex-1 bg-page dark:bg-page-dark">
-      <View className="bg-primary px-5 pb-5 pt-14 dark:bg-primary-700">
-        {/* Title row */}
-        <View className="flex-row items-center">
-          <View className="absolute left-0 right-0 items-center">
-            <Text className="text-xl font-bold text-white">Catalog</Text>
-            {selectedBranch ? (
-              <Text className="text-xs font-semibold text-primary-100" numberOfLines={1}>
-                {selectedBranch.name}
-              </Text>
-            ) : (
-              <Text className="text-xs text-primary-200">All Branches</Text>
-            )}
-          </View>
-          <View className="flex-1" />
-          <TouchableOpacity
-            onPress={() => setBranchModalVisible(true)}
-            activeOpacity={0.75}
-            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
-          >
-            <IconSymbol name="storefront.fill" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Items / Categories toggle */}
+      <ScreenHeader
+        title="Catalog"
+        subtitle={selectedBranch?.name}
+        onBranchPress={() => setBranchModalVisible(true)}
+      >
         <View className="mt-3 flex-row gap-2">
           {TABS.map((label, index) => {
             const active = tab === index;
@@ -94,16 +60,21 @@ export default function CatalogScreen() {
                 activeOpacity={0.75}
                 className={`flex-1 items-center rounded-full py-1.5 ${active ? 'bg-white' : 'bg-white/20'}`}
               >
-                <Text className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}>
+                <Text
+                  className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}
+                >
                   {label}
                 </Text>
               </TouchableOpacity>
             );
           })}
         </View>
-      </View>
+      </ScreenHeader>
 
-      <BranchPickerModal visible={branchModalVisible} onClose={() => setBranchModalVisible(false)} />
+      <BranchPickerModal
+        visible={branchModalVisible}
+        onClose={() => setBranchModalVisible(false)}
+      />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">

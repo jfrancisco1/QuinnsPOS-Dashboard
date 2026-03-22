@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Badge } from '@/components/ui/badge';
-import { ItemShapeSwatch } from '@/components/items/item-shape-swatch';
+import { ItemShapeSwatch } from '@/features/catalog/components/item-shape-swatch';
 import { type Item } from '@/lib/api';
 
 export type ItemCardProps = {

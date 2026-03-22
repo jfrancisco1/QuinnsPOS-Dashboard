@@ -30,14 +30,44 @@ import { ThemedText } from '../../components/themed-text';
 
 ## Project Structure
 
-The codebase follows a **modular, component-based architecture**. Each feature or UI concern is broken into small, focused, reusable units:
+The codebase follows a **feature-based architecture**. Each feature owns its components, hooks, and types in a single directory. Shared, cross-feature code lives in top-level `components/`, `hooks/`, and `lib/`.
 
-- **Screens** (`app/`) orchestrate layout and data flow — they should be thin and delegate rendering to components.
-- **Components** (`components/`) are self-contained, reusable UI pieces. Group related components in a subdirectory (e.g., `components/orders/`, `components/reports/`).
-- **Hooks** (`hooks/`) encapsulate all non-trivial state, effects, and business logic — keeping it out of components and screens.
-- **Lib** (`lib/`) holds shared utilities and the API client — nothing UI-specific goes here.
+```
+app/                        # Routes only — thin screens, no business logic
+  (tabs)/
+    orders.tsx
+    reports.tsx
+features/                   # One directory per product feature
+  orders/
+    components/             # Components used only within this feature
+      order-card.tsx
+      order-filters.tsx
+    hooks/                  # Hooks scoped to this feature
+      use-orders.ts
+      use-order-form.ts
+    types.ts                # Feature-local TypeScript types
+  reports/
+    components/
+    hooks/
+    types.ts
+  items/
+    components/
+    hooks/
+    types.ts
+components/                 # Shared, reusable UI primitives (no feature coupling)
+  ui/
+    button.tsx
+    themed-text.tsx
+hooks/                      # Truly cross-feature hooks (e.g., useThemeColor, useAuth)
+lib/                        # API client, utilities — nothing UI-specific
+```
 
-Avoid placing business logic directly in screens. If a screen grows complex, split it into child components and extract logic into hooks.
+**Rules:**
+- Screens in `app/` are thin orchestrators — delegate all rendering and logic to `features/`.
+- Feature-internal code (components, hooks, types used only within one feature) lives inside `features/<name>/`.
+- Code used by two or more features is promoted to the top-level `components/`, `hooks/`, or `lib/`.
+- Never import from one feature into another (e.g., `features/orders/` must not import from `features/items/`). Use shared directories for cross-feature needs.
+- If a feature grows, add subdirectories inside it — do not flatten everything back into top-level `components/`.
 
 ---
 
@@ -48,7 +78,7 @@ Avoid placing business logic directly in screens. If a screen grows complex, spl
 - Define prop types with a `Props` suffix above the component.
 
 ```tsx
-// components/order-card.tsx
+// features/orders/components/order-card.tsx
 export type OrderCardProps = {
   orderId: string;
   total: number;
@@ -105,7 +135,8 @@ export function OrderCard({ orderId, total, onPress }: OrderCardProps) {
 
 ## Hooks
 
-- All custom hooks live in `hooks/` and are prefixed with `use`.
+- Feature-scoped hooks live in `features/<name>/hooks/` and are prefixed with `use`.
+- Hooks shared across features live in `hooks/` at the project root.
 - Hooks must not have side effects on mount unless clearly documented.
 - Do not call hooks conditionally.
 
@@ -248,6 +279,7 @@ import { Link } from 'expo-router';
 
 import Animated from 'react-native-reanimated';
 
-import { ThemedText } from '@/components/themed-text';
+import { ThemedText } from '@/components/ui/themed-text';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { OrderCard } from '@/features/orders/components/order-card';
 ```

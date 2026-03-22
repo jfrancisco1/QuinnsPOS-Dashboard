@@ -5,13 +5,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
-import {
-  deleteItem,
-  getCategories,
-  updateItem,
-  type Category,
-} from '@/lib/api';
-import { ITEM_COLORS, ITEM_SHAPES, type ItemShape } from '@/lib/item-options';
+import { CategorySelector } from '@/features/catalog/components/category-selector';
+import { ColorPicker } from '@/features/catalog/components/color-picker';
+import { ShapePicker } from '@/features/catalog/components/shape-picker';
+import { deleteItem, getCategories, updateItem, type Category } from '@/lib/api';
+import { type ItemShape } from '@/lib/item-options';
 
 export default function EditItemScreen() {
   const { token } = useAuth();
@@ -37,9 +35,7 @@ export default function EditItemScreen() {
     params.category_id ? Number(params.category_id) : null,
   );
   const [color, setColor] = useState<string | null>(params.color || null);
-  const [shape, setShape] = useState<ItemShape | null>(
-    (params.shape as ItemShape) || null,
-  );
+  const [shape, setShape] = useState<ItemShape | null>((params.shape as ItemShape) || null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -47,7 +43,7 @@ export default function EditItemScreen() {
 
   useEffect(() => {
     if (!token) return;
-    getCategories(token).then(result => {
+    getCategories(token).then((result) => {
       if (result.ok) setCategories(result.data);
     });
   }, [token]);
@@ -119,120 +115,21 @@ export default function EditItemScreen() {
           onChangeText={setDescription}
         />
 
-        {/* Color picker */}
         <View>
           <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">Color</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ITEM_COLORS.map(hex => {
-              const selected = color === hex;
-              return (
-                <TouchableOpacity
-                  key={hex}
-                  onPress={() => setColor(selected ? null : hex)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    backgroundColor: hex,
-                    borderWidth: selected ? 3 : 1.5,
-                    borderColor: selected ? '#560591' : hex,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {selected && (
-                    <View
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        backgroundColor: '#fff',
-                      }}
-                    />
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ColorPicker value={color} onChange={setColor} />
         </View>
 
-        {/* Shape picker */}
         <View>
           <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">Shape</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {ITEM_SHAPES.map(s => {
-              const selected = shape === s;
-              const fillColor = color ?? '#560591';
-              return (
-                <TouchableOpacity
-                  key={s}
-                  onPress={() => setShape(selected ? null : s)}
-                  style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: selected ? '#ECEEFF' : 'transparent',
-                    borderWidth: 1.5,
-                    borderColor: selected ? '#560591' : '#E0E2F0',
-                  }}
-                >
-                  {s === 'circle' && (
-                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: fillColor }} />
-                  )}
-                  {s === 'square' && (
-                    <View style={{ width: 28, height: 28, borderRadius: 4, backgroundColor: fillColor }} />
-                  )}
-                  {s === 'star' && (
-                    <Text style={{ fontSize: 26, color: fillColor, lineHeight: 28 }}>★</Text>
-                  )}
-                  {s === 'diamond' && (
-                    <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
-                      <View style={{ width: 20, height: 20, borderRadius: 2, backgroundColor: fillColor, transform: [{ rotate: '45deg' }] }} />
-                    </View>
-                  )}
-                  <Text style={{ fontSize: 9, marginTop: 4, color: '#8A8FA8', textTransform: 'capitalize' }}>{s}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <ShapePicker value={shape} color={color} onChange={setShape} />
         </View>
 
-        {/* Category */}
         <View>
           <Text className="mb-2 text-sm font-medium text-subtle dark:text-subtle-dark">
             Category *
           </Text>
-          {categories.length === 0 ? (
-            <Text className="text-sm text-muted">No categories found.</Text>
-          ) : (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {categories.map(cat => {
-                  const selected = categoryId === cat.id;
-                  return (
-                    <TouchableOpacity
-                      key={cat.id}
-                      onPress={() => setCategoryId(cat.id)}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        borderRadius: 999,
-                        backgroundColor: selected ? '#560591' : 'transparent',
-                        borderWidth: 1.5,
-                        borderColor: '#560591',
-                      }}
-                    >
-                      <Text style={{ fontSize: 13, fontWeight: '500', color: selected ? '#fff' : '#560591' }}>
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          )}
+          <CategorySelector categories={categories} value={categoryId} onChange={setCategoryId} />
         </View>
 
         <View className="flex-row items-center justify-between">

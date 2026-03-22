@@ -21,6 +21,8 @@ No test suite is configured yet.
 - `app/(tabs)/` — tab group; `_layout.tsx` defines the tab bar, each file is a tab screen
 - `app/modal.tsx` — modal route
 
+**Feature-based structure**: Product features live in `features/<name>/` with their own `components/`, `hooks/`, and `types.ts`. Shared UI primitives go in `components/ui/`. Cross-feature hooks go in `hooks/`. Utilities and the API client live in `lib/`.
+
 **Theme system**: NativeWind is the primary styling layer. Light/dark mode is handled via NativeWind's `dark:` utilities and semantic tokens defined in `tailwind.config.js`. `useThemeColor()` is a fallback for runtime color values needed by non-NativeWind components.
 
 **Platform-specific files**: Expo's platform extension convention is used throughout. Files ending in `.ios.tsx` (e.g., `components/ui/icon-symbol.ios.tsx`) are loaded only on iOS; the base file handles Android/web. The icon system maps SF Symbols (iOS) to Material Icons (Android/web) in `components/ui/icon-symbol.tsx`.
@@ -48,7 +50,7 @@ Full endpoint schemas are in [`docs/coding-standards.md`](docs/coding-standards.
 
 Full standards are in [`docs/coding-standards.md`](docs/coding-standards.md). Key rules:
 
-- **Modular, component-based structure** — screens are thin orchestrators; UI and logic live in `components/` and `hooks/`; group related components in subdirectories (e.g., `components/orders/`)
+- **Feature-based structure** — screens are thin orchestrators; each feature's components, hooks, and types live in `features/<name>/`; shared UI primitives go in `components/ui/`; cross-feature hooks go in `hooks/`
 - **No hardcoded colors** — use NativeWind `className` with `dark:` utilities; add semantic tokens to `tailwind.config.js`
 - **Styling**: NativeWind `className` is the primary mechanism — avoid `StyleSheet.create()` for new components
 - **Named exports** for all components except route screens (`app/`), which use `export default`
