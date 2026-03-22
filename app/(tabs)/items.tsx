@@ -1,16 +1,22 @@
-import { useState } from 'react';
-import { FlatList, SectionList, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from "react";
+import {
+  FlatList,
+  SectionList,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { router } from 'expo-router';
+import { router } from "expo-router";
 
-import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
-import { FAB } from '@/components/ui/fab';
-import { ScreenHeader } from '@/components/ui/screen-header';
-import { useAuth } from '@/context/auth-context';
-import { useBranch } from '@/context/branch-context';
-import { CategoryCard } from '@/features/catalog/components/category-card';
-import { ItemCard } from '@/features/catalog/components/item-card';
-import { useCatalog } from '@/features/catalog/hooks/use-catalog';
+import { BranchPickerModal } from "@/components/ui/branch-picker-modal";
+import { FAB } from "@/components/ui/fab";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { useAuth } from "@/context/auth-context";
+import { useBranch } from "@/context/branch-context";
+import { CategoryCard } from "@/features/catalog/components/category-card";
+import { ItemCard } from "@/features/catalog/components/item-card";
+import { useCatalog } from "@/features/catalog/hooks/use-catalog";
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
@@ -20,7 +26,7 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-const TABS = ['Items', 'Categories'];
+const TABS = ["Items", "Categories"];
 
 export default function CatalogScreen() {
   const { token } = useAuth();
@@ -33,7 +39,7 @@ export default function CatalogScreen() {
   const sections = (() => {
     const map = new Map<string, typeof items>();
     for (const item of items) {
-      const key = item.category?.name ?? 'Uncategorized';
+      const key = item.category?.name ?? "Uncategorized";
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(item);
     }
@@ -46,7 +52,7 @@ export default function CatalogScreen() {
   return (
     <View className="flex-1 bg-page dark:bg-page-dark">
       <ScreenHeader
-        title="Catalog"
+        title="Items"
         subtitle={selectedBranch?.name}
         onBranchPress={() => setBranchModalVisible(true)}
       >
@@ -58,10 +64,10 @@ export default function CatalogScreen() {
                 key={label}
                 onPress={() => setTab(index)}
                 activeOpacity={0.75}
-                className={`flex-1 items-center rounded-full py-1.5 ${active ? 'bg-white' : 'bg-white/20'}`}
+                className={`flex-1 items-center rounded-full py-1.5 ${active ? "bg-white" : "bg-white/20"}`}
               >
                 <Text
-                  className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}
+                  className={`text-sm font-semibold ${active ? "text-primary" : "text-white"}`}
                 >
                   {label}
                 </Text>
@@ -83,7 +89,9 @@ export default function CatalogScreen() {
       ) : tab === 0 ? (
         <SectionList
           sections={sections}
-          keyExtractor={(row, index) => row.map((i) => String(i.id)).join('-') + index}
+          keyExtractor={(row, index) =>
+            row.map((i) => String(i.id)).join("-") + index
+          }
           contentContainerStyle={{ padding: 6 }}
           renderSectionHeader={({ section }) => (
             <View className="px-2 pb-1 pt-3">
@@ -121,7 +129,9 @@ export default function CatalogScreen() {
         />
       )}
 
-      <FAB onPress={() => router.push(tab === 0 ? '/new-item' : '/new-category')} />
+      <FAB
+        onPress={() => router.push(tab === 0 ? "/new-item" : "/new-category")}
+      />
     </View>
   );
 }
