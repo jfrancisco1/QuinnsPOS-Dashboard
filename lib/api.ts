@@ -245,8 +245,16 @@ export function logoutRequest(token: string) {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
-export async function getOrders(token: string): Promise<ApiResult<Order[]>> {
-  const result = await authFetch<unknown>(token, "/orders");
+export async function getOrders(
+  token: string,
+  params?: { from?: string; to?: string; branch_id?: number },
+): Promise<ApiResult<Order[]>> {
+  const query = new URLSearchParams();
+  if (params?.from) query.set('from', params.from);
+  if (params?.to) query.set('to', params.to);
+  if (params?.branch_id != null) query.set('branch_id', String(params.branch_id));
+  const qs = query.toString();
+  const result = await authFetch<unknown>(token, `/orders${qs ? `?${qs}` : ''}`);
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Order>(result.data) };
 }

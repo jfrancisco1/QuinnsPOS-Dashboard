@@ -4,11 +4,12 @@ import { Text, TouchableOpacity, View } from 'react-native';
 type Props = {
   title: string;
   subtitle?: string;
+  description?: string;
   right?: ReactNode;
   onPress?: () => void;
 };
 
-export function ListItem({ title, subtitle, right, onPress }: Props) {
+export function ListItem({ title, subtitle, description, right, onPress }: Props) {
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -20,6 +21,9 @@ export function ListItem({ title, subtitle, right, onPress }: Props) {
         <Text className="text-sm font-medium text-zinc-900 dark:text-white">{title}</Text>
         {subtitle ? (
           <Text className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{subtitle}</Text>
+        ) : null}
+        {description ? (
+          <Text className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{description}</Text>
         ) : null}
       </View>
       {right}
