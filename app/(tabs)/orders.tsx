@@ -22,6 +22,8 @@ export default function OrdersScreen() {
   const {
     orders,
     loading,
+    loadingMore,
+    loadMore,
     statusTab,
     setStatusTab,
     STATUS_TABS,
@@ -133,10 +135,19 @@ export default function OrdersScreen() {
               onPress={() => router.push(`/order/${item.id}`)}
             />
           )}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
           ListEmptyComponent={
             <View className="items-center py-20">
               <Text className="text-sm text-muted">No orders found</Text>
             </View>
+          }
+          ListFooterComponent={
+            loadingMore ? (
+              <View className="items-center py-4">
+                <Text className="text-sm text-muted">Loading more...</Text>
+              </View>
+            ) : null
           }
         />
       )}

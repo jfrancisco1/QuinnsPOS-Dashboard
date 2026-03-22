@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
@@ -17,11 +17,19 @@ type Props = {
 export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [statusTab, setStatusTab] = useState(0);
   const [period, setPeriod] = useState<Period>('today');
   const [offset, setOffset] = useState(0);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+
+  const nextCursorRef = useRef<string | null>(null);
+  const hasMoreRef = useRef(false);
+  const fetchParamsRef = useRef<{ from: string; to: string; branch_id?: number }>({
+    from: '',
+    to: '',
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -57,20 +65,45 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
         toStr = range.to;
       }
 
+      fetchParamsRef.current = { from: fromStr, to: toStr, branch_id: selectedBranch?.id };
+      nextCursorRef.current = null;
+      hasMoreRef.current = false;
+
       Promise.all([
-        getOrders(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+        getOrders(token, fetchParamsRef.current),
         loadBranches(token),
       ]).then(([result]) => {
         if (result.ok) {
-          const sorted = [...result.data].sort(
+          const sorted = [...result.data.data].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           );
           setAllOrders(sorted);
+          nextCursorRef.current = result.data.nextCursor;
+          hasMoreRef.current = result.data.hasMore;
         }
         setLoading(false);
       });
     }, [token, period, offset, customFrom, customTo, selectedBranch, loadBranches]),
   );
+
+  async function loadMore() {
+    if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMore) return;
+
+    setLoadingMore(true);
+    const result = await getOrders(token, {
+      ...fetchParamsRef.current,
+      cursor: nextCursorRef.current,
+    });
+    if (result.ok) {
+      const sorted = [...result.data.data].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      setAllOrders((prev) => [...prev, ...sorted]);
+      nextCursorRef.current = result.data.nextCursor;
+      hasMoreRef.current = result.data.hasMore;
+    }
+    setLoadingMore(false);
+  }
 
   function handlePeriodSelect(key: Period) {
     if (key === 'custom') {
@@ -97,6 +130,8 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   return {
     orders,
     loading,
+    loadingMore,
+    loadMore,
     statusTab,
     setStatusTab,
     STATUS_TABS,

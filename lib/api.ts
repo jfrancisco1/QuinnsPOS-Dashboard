@@ -245,18 +245,33 @@ export function logoutRequest(token: string) {
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
+export type OrdersPage = {
+  data: Order[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
 export async function getOrders(
   token: string,
-  params?: { from?: string; to?: string; branch_id?: number },
-): Promise<ApiResult<Order[]>> {
+  params?: { from?: string; to?: string; branch_id?: number; cursor?: string },
+): Promise<ApiResult<OrdersPage>> {
   const query = new URLSearchParams();
   if (params?.from) query.set('from', params.from);
   if (params?.to) query.set('to', params.to);
   if (params?.branch_id != null) query.set('branch_id', String(params.branch_id));
+  if (params?.cursor) query.set('cursor', params.cursor);
   const qs = query.toString();
   const result = await authFetch<unknown>(token, `/orders${qs ? `?${qs}` : ''}`);
   if (!result.ok) return result;
-  return { ok: true, data: extractArray<Order>(result.data) };
+  const raw = result.data as { data?: unknown; nextCursor?: string | null; hasMore?: boolean };
+  return {
+    ok: true,
+    data: {
+      data: extractArray<Order>(raw.data ?? raw),
+      nextCursor: raw.nextCursor ?? null,
+      hasMore: raw.hasMore ?? false,
+    },
+  };
 }
 
 export async function getOrderByNumber(
