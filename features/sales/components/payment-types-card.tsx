@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
+import { useColorScheme } from "nativewind";
 
 import { Card } from "@/components/ui/card";
 import { fmtPeso, getPaymentIcon } from "@/features/sales/utils";
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export function PaymentTypesCard({ salesByPayment }: Props) {
+  const { colorScheme } = useColorScheme();
+  const amountColor = colorScheme === 'dark' ? '#B060FF' : '#560591';
   if (salesByPayment.length === 0) return null;
 
   return (
@@ -36,7 +39,7 @@ export function PaymentTypesCard({ salesByPayment }: Props) {
                   </Text>
                 </View>
               </View>
-              <Text className="text-sm font-bold text-primary">
+              <Text className="text-sm font-bold" style={{ color: amountColor }}>
                 {fmtPeso(row.payment_amount)}
               </Text>
             </View>

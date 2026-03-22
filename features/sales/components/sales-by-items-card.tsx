@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { useColorScheme } from "nativewind";
 
 import { Card } from "@/components/ui/card";
 import { ItemShapeSwatch } from "@/features/catalog/components/item-shape-swatch";
@@ -11,6 +12,8 @@ type Props = {
 };
 
 export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
+  const { colorScheme } = useColorScheme();
+  const amountColor = colorScheme === 'dark' ? '#B060FF' : '#560591';
   if (salesByItem.length === 0) return null;
 
   return (
@@ -40,7 +43,7 @@ export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
                   </Text>
                 </View>
               </View>
-              <Text className="text-sm font-bold text-primary">
+              <Text className="text-sm font-bold" style={{ color: amountColor }}>
                 {fmtPeso(row.net_sales)}
               </Text>
             </View>

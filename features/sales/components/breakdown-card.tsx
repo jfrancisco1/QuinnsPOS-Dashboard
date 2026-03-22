@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 import { Card } from '@/components/ui/card';
 import { type SalesSummary } from '@/lib/api';
@@ -11,14 +12,16 @@ type Props = {
 };
 
 export function BreakdownCard({ summary, grossProfit, totalExpenses }: Props) {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const netProfit = summary?.netProfit ?? 0;
   const mainItems = [
-    { label: 'Gross Sales', value: summary?.grossSales ?? 0, color: '#560591', bold: false },
-    { label: 'Net Sales', value: summary?.grossSales ?? 0, color: '#9130F0', bold: false },
-    { label: 'Cost of Goods', value: summary?.costOfGoods ?? 0, color: '#F59E0B', bold: false },
-    { label: 'Gross Profit', value: grossProfit, color: '#22C55E', bold: true },
-    { label: 'Expenses', value: -totalExpenses, color: '#EF4444', bold: false },
-    { label: 'Net Profit', value: netProfit, color: netProfit >= 0 ? '#22C55E' : '#EF4444', bold: true },
+    { label: 'Gross Sales', value: summary?.grossSales ?? 0, color: '#560591', darkColor: '#C084FC', bold: false },
+    { label: 'Net Sales', value: summary?.grossSales ?? 0, color: '#9130F0', darkColor: '#D8B4FE', bold: false },
+    { label: 'Cost of Goods', value: summary?.costOfGoods ?? 0, color: '#F59E0B', darkColor: '#FCD34D', bold: false },
+    { label: 'Gross Profit', value: grossProfit, color: '#22C55E', darkColor: '#86EFAC', bold: true },
+    { label: 'Expenses', value: -totalExpenses, color: '#EF4444', darkColor: '#FCA5A5', bold: false },
+    { label: 'Net Profit', value: netProfit, color: netProfit >= 0 ? '#22C55E' : '#EF4444', darkColor: netProfit >= 0 ? '#86EFAC' : '#FCA5A5', bold: true },
   ];
   return (
     <Card title="Breakdown">
@@ -36,7 +39,7 @@ export function BreakdownCard({ summary, grossProfit, totalExpenses }: Props) {
             >
               {item.label}
             </Text>
-            <Text className="text-sm font-bold" style={{ color: item.color }}>
+            <Text className="text-sm font-bold" style={{ color: isDark ? item.darkColor : item.color }}>
               {item.value < 0 ? `-${fmtPeso(Math.abs(item.value))}` : fmtPeso(Math.abs(item.value))}
             </Text>
           </View>

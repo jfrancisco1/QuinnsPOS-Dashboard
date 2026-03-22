@@ -1,4 +1,5 @@
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 import { type Category } from '@/lib/api';
 
@@ -9,6 +10,8 @@ type Props = {
 };
 
 export function CategorySelector({ categories, value, onChange }: Props) {
+  const { colorScheme } = useColorScheme();
+  const primaryColor = colorScheme === 'dark' ? '#B060FF' : '#560591';
   if (categories.length === 0) {
     return (
       <Text className="text-sm text-muted">No categories found. Create a category first.</Text>
@@ -28,13 +31,13 @@ export function CategorySelector({ categories, value, onChange }: Props) {
                 paddingHorizontal: 16,
                 paddingVertical: 8,
                 borderRadius: 999,
-                backgroundColor: selected ? '#560591' : 'transparent',
+                backgroundColor: selected ? primaryColor : 'transparent',
                 borderWidth: 1.5,
-                borderColor: '#560591',
+                borderColor: primaryColor,
               }}
             >
               <Text
-                style={{ fontSize: 13, fontWeight: '500', color: selected ? '#fff' : '#560591' }}
+                style={{ fontSize: 13, fontWeight: '500', color: selected ? '#fff' : primaryColor }}
               >
                 {cat.name}
               </Text>
