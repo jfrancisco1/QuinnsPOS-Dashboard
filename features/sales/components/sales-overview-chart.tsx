@@ -3,11 +3,18 @@ import { BarChart } from 'react-native-gifted-charts';
 
 import { Card } from '@/components/ui/card';
 import { type SalesSummary } from '@/lib/api';
-import { type Period } from '@/lib/date-helpers';
 
 const Y_AXIS_WIDTH = 38;
 const chartAxisStyle = { color: '#8A8FA8', fontSize: 10 };
 const chartXLabelStyle = { color: '#5A5E7A', fontSize: 9, textAlign: 'center' as const };
+
+// Approximate pixel width of the widest label per granularity (fontSize 9)
+const LABEL_WIDTH: Record<string, number> = {
+  hour: 22, // "12am"
+  day: 12,  // "30"
+  month: 16, // "Sep"
+  year: 22,  // "2024"
+};
 
 function formatYLabel(v: string) {
   const n = Number(v);
@@ -17,136 +24,46 @@ function formatYLabel(v: string) {
 }
 
 type Props = {
-  period: Period;
-  offset: number;
-  isTimeSeries: boolean;
-  dailySummaries: { date: string; netSales: number }[];
-  summary: SalesSummary | null;
-  grossProfit: number;
-  totalExpenses: number;
-  netProfit: number;
-  customGranularity: 'day' | 'month' | 'year';
+  granularity: SalesSummary['group_by'];
+  dailySummaries: { date: string; grossSales: number }[];
   containerWidth: number;
   onLayout: (width: number) => void;
 };
 
-export function SalesOverviewChart({
-  period,
-  offset,
-  isTimeSeries,
-  dailySummaries,
-  summary,
-  grossProfit,
-  totalExpenses,
-  netProfit,
-  customGranularity,
-  containerWidth,
-  onLayout,
-}: Props) {
+export function SalesOverviewChart({ granularity, dailySummaries, containerWidth, onLayout }: Props) {
   const barArea = Math.max(containerWidth - Y_AXIS_WIDTH, 0);
+  const numBars = Math.max(dailySummaries.length, 1);
 
-  const weeklySpacing = 6;
-  const weeklyBarWidth = Math.max(1, Math.floor((barArea - weeklySpacing * 6) / 7));
-  const yearlySpacing = 4;
-  const yearlyBarWidth = Math.max(1, Math.floor((barArea - yearlySpacing * 11) / 12));
-  const monthlySpacing = 2;
-  const monthlyNumBars =
-    period === 'this_month' && dailySummaries.length > 0 ? dailySummaries.length : 31;
-  const monthlyBarWidth = Math.max(
-    1,
-    Math.floor((barArea - monthlySpacing * (monthlyNumBars - 1)) / monthlyNumBars),
-  );
-  const customNumBars = Math.max(dailySummaries.length, 1);
-  const customSpacing = customGranularity === 'day' ? 2 : 6;
-  const customBarWidth = Math.max(
-    1,
-    Math.floor((barArea - customSpacing * (customNumBars - 1)) / customNumBars),
-  );
+  const spacing = granularity === 'hour' || granularity === 'day' ? 2 : 6;
+  const barWidth = Math.max(1, Math.floor((barArea - spacing * (numBars - 1)) / numBars));
+  const labelWidth = LABEL_WIDTH[granularity] ?? 14;
+  const byWidth = barWidth > 0 ? Math.max(1, Math.ceil(labelWidth / (barWidth + spacing))) : 6;
+  const maxLabels = granularity === 'hour' ? 6 : granularity === 'day' ? 15 : numBars;
+  const byCount = Math.ceil(numBars / maxLabels);
+  const interval = Math.max(byWidth, byCount);
 
-  const LABEL_WIDTH = 14;
-  const monthlyInterval =
-    monthlyBarWidth > 0
-      ? Math.max(1, Math.ceil(LABEL_WIDTH / (monthlyBarWidth + monthlySpacing)))
-      : 5;
-  const customDayInterval =
-    customBarWidth > 0
-      ? Math.max(1, Math.ceil(LABEL_WIDTH / (customBarWidth + customSpacing)))
-      : 5;
+  // Give shown labels enough space to span `interval` bars so they don't get clipped
+  const shownLabelWidth = (barWidth + spacing) * interval - spacing;
 
-  const timeSeriesChartData = dailySummaries.map(({ date: label, netSales }, i) => ({
-    value: netSales,
+  const chartData = dailySummaries.map(({ date, grossSales }, i) => ({
+    value: grossSales,
     frontColor: '#CCFFCC',
-    label:
-      period === 'this_month'
-        ? i % monthlyInterval === 0
-          ? label
-          : ''
-        : period === 'custom' && customGranularity === 'day'
-          ? i % customDayInterval === 0
-            ? label
-            : ''
-          : label,
+    label: i % interval === 0 ? date : '',
+    labelWidth: i % interval === 0 ? shownLabelWidth : barWidth,
   }));
-
-  const chartData = [
-    { value: summary?.grossSales ?? 0, label: 'Gross', frontColor: '#560591' },
-    { value: summary?.netSales ?? 0, label: 'Net Sales', frontColor: '#9130F0' },
-    { value: summary?.costOfGoods ?? 0, label: 'COGS', frontColor: '#F59E0B' },
-    { value: grossProfit, label: 'Gross\nProfit', frontColor: '#22C55E' },
-    { value: totalExpenses, label: 'Expenses', frontColor: '#EF4444' },
-    {
-      value: Math.max(netProfit, 0),
-      label: 'Net\nProfit',
-      frontColor: netProfit >= 0 ? '#0EA5E9' : '#EF4444',
-    },
-  ];
-
-  const barWidth =
-    period === 'this_year'
-      ? yearlyBarWidth
-      : period === 'this_month'
-        ? monthlyBarWidth
-        : period === 'custom'
-          ? customBarWidth
-          : weeklyBarWidth;
-
-  const spacing =
-    period === 'this_year'
-      ? yearlySpacing
-      : period === 'this_month'
-        ? monthlySpacing
-        : period === 'custom'
-          ? customSpacing
-          : weeklySpacing;
 
   return (
     <Card title="Sales Overview">
       <View onLayout={(e) => onLayout(e.nativeEvent.layout.width)}>
-        {containerWidth === 0 ? null : isTimeSeries ? (
+        {containerWidth > 0 && (
           <BarChart
-            key={`ts-${containerWidth}-${period}-${offset}-${timeSeriesChartData.length}`}
-            data={timeSeriesChartData}
+            key={`chart-${containerWidth}-${granularity}-${dailySummaries.length}`}
+            data={chartData}
             barWidth={barWidth}
             spacing={spacing}
             width={barArea}
             yAxisLabelWidth={Y_AXIS_WIDTH}
             initialSpacing={0}
-            hideRules
-            xAxisThickness={0}
-            yAxisThickness={0}
-            yAxisTextStyle={chartAxisStyle}
-            xAxisLabelTextStyle={chartXLabelStyle}
-            noOfSections={4}
-            maxValue={Math.max(...timeSeriesChartData.map((d) => d.value), 1) * 1.2}
-            barBorderRadius={0}
-            formatYLabel={formatYLabel}
-          />
-        ) : (
-          <BarChart
-            key={`summary-${containerWidth}-${period}-${offset}`}
-            data={chartData}
-            barWidth={38}
-            spacing={12}
             hideRules
             xAxisThickness={0}
             yAxisThickness={0}
