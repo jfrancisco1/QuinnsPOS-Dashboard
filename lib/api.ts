@@ -15,6 +15,7 @@ export type Category = {
   id: number;
   name: string;
   is_active: boolean;
+  sort_order: number;
   created_at: string;
 };
 
@@ -128,6 +129,7 @@ export type CreateItemPayload = {
 export type CreateCategoryPayload = {
   name: string;
   is_active: boolean;
+  sort_order?: number;
 };
 
 export type CreateExpensePayload = {

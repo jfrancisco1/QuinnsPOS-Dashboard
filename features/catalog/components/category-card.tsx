@@ -17,6 +17,7 @@ export function CategoryCard({ cat }: CategoryCardProps) {
         id: String(cat.id),
         name: cat.name,
         is_active: cat.is_active ? '1' : '0',
+        sort_order: String(cat.sort_order ?? 0),
       },
     });
   }

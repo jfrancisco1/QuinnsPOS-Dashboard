@@ -13,11 +13,13 @@ export default function EditCategoryScreen() {
     id: string;
     name: string;
     is_active: string;
+    sort_order: string;
   }>();
   const categoryId = Number(params.id);
 
   const [name, setName] = useState(params.name ?? '');
   const [isActive, setIsActive] = useState(params.is_active !== '0');
+  const [sortOrder, setSortOrder] = useState(params.sort_order ?? '0');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export default function EditCategoryScreen() {
     const result = await updateCategory(token!, categoryId, {
       name: name.trim(),
       is_active: isActive,
+      sort_order: Number(sortOrder),
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -63,6 +66,14 @@ export default function EditCategoryScreen() {
           placeholder="e.g. Dry Cleaning"
           value={name}
           onChangeText={setName}
+        />
+
+        <TextInput
+          label="Sort Order"
+          placeholder="0"
+          value={sortOrder}
+          onChangeText={setSortOrder}
+          keyboardType="numeric"
         />
 
         <View className="flex-row items-center justify-between">

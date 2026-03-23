@@ -11,6 +11,7 @@ export default function NewCategoryScreen() {
   const { token } = useAuth();
   const [name, setName] = useState('');
   const [isActive, setIsActive] = useState(true);
+  const [sortOrder, setSortOrder] = useState('0');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +22,7 @@ export default function NewCategoryScreen() {
     }
     setIsSubmitting(true);
     setError(null);
-    const result = await createCategory(token!, { name: name.trim(), is_active: isActive });
+    const result = await createCategory(token!, { name: name.trim(), is_active: isActive, sort_order: Number(sortOrder) });
     setIsSubmitting(false);
     if (result.ok) {
       router.back();
@@ -38,6 +39,14 @@ export default function NewCategoryScreen() {
           placeholder="e.g. Dry Cleaning"
           value={name}
           onChangeText={setName}
+        />
+
+        <TextInput
+          label="Sort Order"
+          placeholder="0"
+          value={sortOrder}
+          onChangeText={setSortOrder}
+          keyboardType="numeric"
         />
 
         <View className="flex-row items-center justify-between">

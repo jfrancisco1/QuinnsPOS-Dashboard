@@ -37,16 +37,21 @@ export default function CatalogScreen() {
   const { items, categories, loading } = useCatalog({ token, loadBranches });
 
   const sections = (() => {
-    const map = new Map<string, typeof items>();
+    const map = new Map<number | null, { title: string; sortOrder: number; items: typeof items }>();
     for (const item of items) {
-      const key = item.category?.name ?? "Uncategorized";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(item);
+      const key = item.category?.id ?? null;
+      if (!map.has(key)) {
+        map.set(key, {
+          title: item.category?.name ?? "Uncategorized",
+          sortOrder: item.category?.sort_order ?? Infinity,
+          items: [],
+        });
+      }
+      map.get(key)!.items.push(item);
     }
-    return Array.from(map.entries()).map(([title, data]) => ({
-      title,
-      data: chunkArray(data, 2),
-    }));
+    return Array.from(map.values())
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map(({ title, items: data }) => ({ title, data: chunkArray(data, 2) }));
   })();
 
   return (
@@ -117,7 +122,7 @@ export default function CatalogScreen() {
       ) : (
         <FlatList
           key="categories"
-          data={categories}
+          data={[...categories].sort((a, b) => a.sort_order - b.sort_order)}
           keyExtractor={(cat, index) => String(cat.id ?? index)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}
           renderItem={({ item: cat }) => <CategoryCard cat={cat} />}
