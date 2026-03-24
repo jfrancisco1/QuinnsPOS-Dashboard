@@ -45,7 +45,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
   const [salesByItem, setSalesByItem] = useState<SalesByItem[]>([]);
   const [itemsMap, setItemsMap] = useState<Map<number, Item>>(new Map());
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
-  const [dailySummaries, setDailySummaries] = useState<{ date: string; grossSales: number }[]>([]);
+  const [dailySummaries, setDailySummaries] = useState<{ date: string; netSales: number }[]>([]);
   const [granularity, setGranularity] = useState<SalesSummary['group_by']>('hour');
   const [loading, setLoading] = useState(true);
 
@@ -93,9 +93,9 @@ export function useSalesData({ token, selectedBranch }: Props) {
           setSummary(sumRes.data);
           setGranularity(sumRes.data.group_by);
           setDailySummaries(
-            sumRes.data.series.map(({ label, gross_sales }) => ({
+            sumRes.data.series.map(({ label, net_sales }) => ({
               date: formatSeriesLabel(label, sumRes.data.group_by),
-              grossSales: gross_sales,
+              netSales: net_sales,
             })),
           );
         }

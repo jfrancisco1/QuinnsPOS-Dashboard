@@ -81,14 +81,18 @@ export type SalesSummary = {
   to: string;
   branch: number | null;
   grossSales: number;
+  discounts: number;
   netSales: number;
   costOfGoods: number;
   grossProfit: number;
   expenses: number;
   netProfit: number;
+  collected: number;
+  outstanding: number;
+  unpaidOrders: number;
   unpaid: { orders: number; grossSales: number };
   group_by: "hour" | "day" | "month" | "year";
-  series: { label: string; gross_sales: number }[];
+  series: { label: string; net_sales: number }[];
 };
 
 export type SalesByItem = {

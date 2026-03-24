@@ -25,7 +25,7 @@ function formatYLabel(v: string) {
 
 type Props = {
   granularity: SalesSummary['group_by'];
-  dailySummaries: { date: string; grossSales: number }[];
+  dailySummaries: { date: string; netSales: number }[];
   containerWidth: number;
   onLayout: (width: number) => void;
 };
@@ -45,8 +45,8 @@ export function SalesOverviewChart({ granularity, dailySummaries, containerWidth
   // Give shown labels enough space to span `interval` bars so they don't get clipped
   const shownLabelWidth = (barWidth + spacing) * interval - spacing;
 
-  const chartData = dailySummaries.map(({ date, grossSales }, i) => ({
-    value: grossSales,
+  const chartData = dailySummaries.map(({ date, netSales }, i) => ({
+    value: netSales,
     frontColor: '#CCFFCC',
     label: i % interval === 0 ? date : '',
     labelWidth: i % interval === 0 ? shownLabelWidth : barWidth,
