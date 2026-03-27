@@ -35,16 +35,10 @@ No test suite is configured yet.
 
 **Base URL:** `https://laundryappapi-production.up.railway.app/api/v1`
 
-All requests require `Authorization: Bearer <token>` except `POST /login`. Key endpoints:
-- **Auth**: `POST /login`, `POST /logout`, `GET /me`
-- **Branches**: `GET|POST /branches`, `GET|PATCH|DELETE /branches/{id}`
-- **Customers**: `GET|POST /customers`, `GET|PUT|DELETE /customers/{id}`
-- **Orders**: `GET|POST /orders`, `GET|PUT|DELETE /orders/{orderNumber}` (keyed by orderNumber string, not id)
-- **Expenses**: `GET|POST /expenses`, `GET|PUT|DELETE /expenses/{id}`
-- **Reports**: `GET /reports/sales`, `/reports/sales-by-item`, `/reports/sales-by-payment-type` — all accept `period`, `from`, `to`, `branch_id` query params
-- **Categories/Items**: full CRUD at `/categories` and `/items`
+**Interactive docs (source of truth):** `https://laundryappapi-production.up.railway.app/docs`
+> The API is actively evolving — always check the interactive docs for the latest schemas and endpoints before implementing any API call.
 
-Full endpoint schemas are in [`docs/coding-standards.md`](docs/coding-standards.md#api-integration). All API calls go through `lib/api.ts`.
+All requests require `Authorization: Bearer <token>` except `POST /login`. All API calls go through `lib/api.ts`.
 
 ## Coding Standards
 

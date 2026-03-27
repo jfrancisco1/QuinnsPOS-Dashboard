@@ -163,6 +163,9 @@ export function OrderCard({ orderId, total, onPress }: OrderCardProps) {
 
 **Base URL:** `https://laundryappapi-production.up.railway.app/api/v1`
 
+**Interactive docs (source of truth):** `https://laundryappapi-production.up.railway.app/docs`
+> The API is actively evolving. Always consult the interactive docs for the latest request/response schemas, available query params, and new endpoints before implementing or updating any API call.
+
 All requests (except `POST /login`) require a Bearer token in the `Authorization` header:
 ```
 Authorization: Bearer <token>
@@ -170,88 +173,17 @@ Authorization: Bearer <token>
 
 The token is obtained from `POST /login` and stored/retrieved from context or secure storage.
 
-### Endpoints Reference
+### Endpoint Groups
 
-#### Auth
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/login` | Public | Login with `username` + `password`; returns token |
-| POST | `/logout` | Required | Invalidate current token |
-| GET | `/me` | Required | Get current user + token expiry |
+- **Auth**: `/login`, `/logout`, `/me`
+- **Branches**: `/branches`, `/branches/{id}`
+- **Customers**: `/customers`, `/customers/{id}`
+- **Orders**: `/orders`, `/orders/{orderNumber}` (keyed by orderNumber string, not id)
+- **Expenses**: `/expenses`, `/expenses/{id}`
+- **Reports**: `/reports/sales`, `/reports/sales-by-item`, `/reports/sales-by-payment-type` — accept `period`, `from`, `to`, `branch_id`
+- **Categories & Items**: `/categories`, `/categories/{id}`, `/items`, `/items/{id}`
 
-#### Branches
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/branches` | Required | List all active branches |
-| POST | `/branches` | Admin only | Create branch (`name`, `address`, `phone`, `is_active`) |
-| GET | `/branches/{id}` | Required | Get single branch |
-| PATCH | `/branches/{id}` | Admin only | Update branch fields |
-| DELETE | `/branches/{id}` | Admin only | Delete branch |
-
-#### Customers
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/customers` | List all customers |
-| POST | `/customers` | Create (`nickname` required, `mobile`, `address`, `notes`, `delivery_fee`) |
-| GET | `/customers/{id}` | Get single customer |
-| PUT | `/customers/{id}` | Update customer |
-| DELETE | `/customers/{id}` | Soft delete customer |
-
-#### Orders
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/orders` | List all orders with nested items |
-| POST | `/orders` | Create order (see schema below) |
-| GET | `/orders/{orderNumber}` | Get single order with customer details |
-| PUT | `/orders/{orderNumber}` | Update order |
-| DELETE | `/orders/{orderNumber}` | Delete order |
-
-**POST /orders body:**
-```ts
-{
-  customer_id: number;           // required
-  fulfillmentType: 'walk-in' | 'pickup-deliver'; // required
-  subtotal: number;              // required
-  deliveryFee: number;           // required
-  discountAmount?: number;       // defaults 0
-  total: number;                 // required
-  createdAt?: string;            // ISO 8601
-  paymentStatus?: 'unpaid' | 'pending' | 'paid_gcash' | 'paid_cash';
-  orderStatus?: 'in_progress' | 'ready' | 'completed';
-  items: Array<{                 // min 1 item
-    itemId: string;
-    label: string;
-    qty: number;
-    price: number;
-  }>;
-}
-```
-
-#### Expenses
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/expenses` | List all expenses |
-| POST | `/expenses` | Create (`description`, `amount`, `expense_date` YYYY-MM-DD, `note`) |
-| GET | `/expenses/{id}` | Get single expense |
-| PUT | `/expenses/{id}` | Update expense |
-| DELETE | `/expenses/{id}` | Delete expense |
-
-#### Reports
-All report endpoints accept: `period` (today | this_week | this_month | this_year | custom), `from`/`to` (YYYY-MM-DD, required when period=custom), `branch_id` (admin only).
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/reports/sales` | Gross sales, discounts, net sales, COGS, gross profit |
-| GET | `/reports/sales-by-item` | Item-level breakdown with top items |
-| GET | `/reports/sales-by-payment-type` | Payment method breakdown |
-
-#### Categories & Items
-| Method | Path | Description |
-|--------|------|-------------|
-| GET/POST | `/categories` | List or create categories (`name`, `is_active`) |
-| GET/PUT/DELETE | `/categories/{id}` | Get, update, or delete category |
-| GET/POST | `/items` | List or create items (`name`, `price`, `cost`, `description`, `color` hex, `shape`, `is_active`, `category_id`) |
-| GET/PUT/DELETE | `/items/{id}` | Get, update, or delete item |
+For full request bodies, response shapes, and query parameters refer to the interactive docs linked above.
 
 ### API Calling Conventions
 

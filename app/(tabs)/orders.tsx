@@ -1,20 +1,33 @@
-import { useState } from 'react';
-import { Pressable, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useState } from "react";
+import {
+  Pressable,
+  SectionList,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import type { Order } from '@/lib/api';
+import type { Order } from "@/lib/api";
 
-import { router } from 'expo-router';
+import { router } from "expo-router";
 
-import { Badge } from '@/components/ui/badge';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
-import { ListItem } from '@/components/ui/list-item';
-import { ScreenHeader } from '@/components/ui/screen-header';
-import { useAuth } from '@/context/auth-context';
-import { useBranch } from '@/context/branch-context';
-import { useOrders } from '@/features/orders/hooks/use-orders';
-import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
-import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
+import { Badge } from "@/components/ui/badge";
+import { BranchPickerModal } from "@/components/ui/branch-picker-modal";
+import { IconSymbol } from "@/components/ui/icon-symbol";
+import { ListItem } from "@/components/ui/list-item";
+import { ScreenHeader } from "@/components/ui/screen-header";
+import { useAuth } from "@/context/auth-context";
+import { useBranch } from "@/context/branch-context";
+import { useOrders } from "@/features/orders/hooks/use-orders";
+import {
+  fulfillmentLabel,
+  paymentLabel,
+  paymentVariant,
+  statusLabel,
+  statusVariant,
+} from "@/features/orders/utils";
+import { PeriodPickerModal } from "@/features/sales/components/period-picker-modal";
 
 export default function OrdersScreen() {
   const { token } = useAuth();
@@ -40,21 +53,24 @@ export default function OrdersScreen() {
     setSearchQuery,
   } = useOrders({ token, selectedBranch, loadBranches });
 
-  const sections = orders.reduce<{ title: string; data: Order[] }[]>((acc, order) => {
-    const label = new Date(order.createdAt).toLocaleDateString('en-PH', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
-    const existing = acc.find((s) => s.title === label);
-    if (existing) {
-      existing.data.push(order);
-    } else {
-      acc.push({ title: label, data: [order] });
-    }
-    return acc;
-  }, []);
+  const sections = orders.reduce<{ title: string; data: Order[] }[]>(
+    (acc, order) => {
+      const label = new Date(order.createdAt).toLocaleDateString("en-PH", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      const existing = acc.find((s) => s.title === label);
+      if (existing) {
+        existing.data.push(order);
+      } else {
+        acc.push({ title: label, data: [order] });
+      }
+      return acc;
+    },
+    [],
+  );
 
   return (
     <View className="flex-1 bg-page dark:bg-page-dark">
@@ -68,7 +84,7 @@ export default function OrdersScreen() {
             onPress={() => setOffset((o) => o - 1)}
             disabled={!canGoBack}
             activeOpacity={0.5}
-            className={`h-8 w-8 items-center justify-center ${!canGoBack ? 'opacity-30' : ''}`}
+            className={`h-8 w-8 items-center justify-center ${!canGoBack ? "opacity-30" : ""}`}
           >
             <Text className="text-2xl font-bold text-white">‹</Text>
           </TouchableOpacity>
@@ -78,7 +94,10 @@ export default function OrdersScreen() {
             activeOpacity={0.8}
             className="mx-2 flex-1 items-center rounded-full bg-white/20 py-1.5"
           >
-            <Text className="text-sm font-semibold text-white" numberOfLines={1}>
+            <Text
+              className="text-sm font-semibold text-white"
+              numberOfLines={1}
+            >
               {periodLabel}
             </Text>
           </TouchableOpacity>
@@ -87,7 +106,7 @@ export default function OrdersScreen() {
             onPress={() => setOffset((o) => o + 1)}
             disabled={!canGoForward}
             activeOpacity={0.5}
-            className={`h-8 w-8 items-center justify-center ${!canGoForward ? 'opacity-30' : ''}`}
+            className={`h-8 w-8 items-center justify-center ${!canGoForward ? "opacity-30" : ""}`}
           >
             <Text className="text-2xl font-bold text-white">›</Text>
           </TouchableOpacity>
@@ -101,10 +120,10 @@ export default function OrdersScreen() {
                 key={label}
                 onPress={() => setStatusTab(index)}
                 activeOpacity={0.75}
-                className={`flex-1 items-center rounded-full py-1.5 ${active ? 'bg-white' : 'bg-white/20'}`}
+                className={`flex-1 items-center rounded-full py-1.5 ${active ? "bg-white" : "bg-white/20"}`}
               >
                 <Text
-                  className={`text-sm font-semibold ${active ? 'text-primary' : 'text-white'}`}
+                  className={`text-sm font-semibold ${active ? "text-primary" : "text-white"}`}
                 >
                   {label}
                 </Text>
@@ -143,7 +162,7 @@ export default function OrdersScreen() {
             className="flex-1 py-2.5 pl-2 text-sm text-zinc-900 dark:text-white"
           />
           {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+            <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
               <IconSymbol name="xmark.circle.fill" size={16} color="#71717a" />
             </Pressable>
           )}
@@ -160,24 +179,34 @@ export default function OrdersScreen() {
           keyExtractor={(item) => item.id}
           renderSectionHeader={({ section }) => (
             <View className="border-b border-divide bg-page px-4 py-2 dark:border-divide-dark dark:bg-page-dark">
-              <Text className="text-sm font-bold text-primary">
+              <Text className="text-sm font-bold text-emerald">
                 {section.title}
               </Text>
             </View>
           )}
           renderItem={({ item }) => (
             <ListItem
-              title={item.customer?.nickname ?? 'Unknown'}
+              title={item.customer?.nickname ?? "Unknown"}
               subtitle={`${fulfillmentLabel(item.fulfillmentType)}`}
               description={item.customer?.address ?? undefined}
               right={
                 <View className="items-end gap-1">
                   <Text className="text-base font-bold text-zinc-900 dark:text-white">
-                    ₱{Number(item.total).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ₱
+                    {Number(item.total).toLocaleString("en-PH", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </Text>
                   <View className="flex-row gap-1">
-                    <Badge label={statusLabel(item.orderStatus)} variant={statusVariant(item.orderStatus)} />
-                    <Badge label={paymentLabel(item.paymentStatus)} variant={paymentVariant(item.paymentStatus)} />
+                    <Badge
+                      label={statusLabel(item.orderStatus)}
+                      variant={statusVariant(item.orderStatus)}
+                    />
+                    <Badge
+                      label={paymentLabel(item.paymentStatus)}
+                      variant={paymentVariant(item.paymentStatus)}
+                    />
                   </View>
                 </View>
               }

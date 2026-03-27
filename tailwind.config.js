@@ -36,6 +36,7 @@ module.exports = {
         'chip-dark': '#252845',
         divide: '#F0F2FF',
         'divide-dark': '#1E2040',
+        emerald: '#10B981',
       },
     },
   },
