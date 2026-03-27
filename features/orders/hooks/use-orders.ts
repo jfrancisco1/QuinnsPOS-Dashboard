@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
@@ -24,9 +24,17 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
   const nextCursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(false);
-  const fetchParamsRef = useRef<{ from: string; to: string; branch_id?: number }>({
+  const fetchParamsRef = useRef<{ from: string; to: string; branch_id?: number; search?: string; payment_status?: string }>({
     from: '',
     to: '',
   });
@@ -65,7 +73,15 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
         toStr = range.to;
       }
 
-      fetchParamsRef.current = { from: fromStr, to: toStr, branch_id: selectedBranch?.id };
+      const paymentStatusParam = statusTab === 1 ? 'paid' : statusTab === 2 ? 'unpaid' : undefined;
+
+      fetchParamsRef.current = {
+        from: fromStr,
+        to: toStr,
+        branch_id: selectedBranch?.id,
+        search: debouncedSearch || undefined,
+        payment_status: paymentStatusParam,
+      };
       nextCursorRef.current = null;
       hasMoreRef.current = false;
 
@@ -83,7 +99,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
         }
         setLoading(false);
       });
-    }, [token, period, offset, customFrom, customTo, selectedBranch, loadBranches]),
+    }, [token, period, offset, customFrom, customTo, selectedBranch, loadBranches, debouncedSearch, statusTab]),
   );
 
   async function loadMore() {
@@ -116,12 +132,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     }
   }
 
-  const orders =
-    statusTab === 0
-      ? allOrders
-      : statusTab === 1
-        ? allOrders.filter((o) => o.paymentStatus?.toLowerCase() !== 'unpaid')
-        : allOrders.filter((o) => o.paymentStatus?.toLowerCase() === 'unpaid');
+  const orders = allOrders;
 
   const periodLabel = getPeriodLabel(period, offset, customFrom, customTo);
   const canGoForward = period !== 'custom' && offset < 0;
@@ -142,5 +153,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     canGoForward,
     canGoBack,
     handlePeriodSelect,
+    searchQuery,
+    setSearchQuery,
   };
 }

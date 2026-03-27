@@ -22,6 +22,8 @@ const MAPPING = {
   'tag.fill': 'label',
   'chart.bar.fill': 'bar-chart',
   'storefront.fill': 'store',
+  'magnifyingglass': 'search',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**

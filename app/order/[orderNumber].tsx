@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
-import { paymentVariant, statusVariant } from '@/features/orders/utils';
+import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
 import { getOrderByNumber, type Order } from '@/lib/api';
 
 export default function OrderDetailScreen() {
@@ -44,25 +44,27 @@ export default function OrderDetailScreen() {
         {/* Header card */}
         <View className="rounded-xl bg-white p-4 dark:bg-zinc-900">
           <View className="mb-3 flex-row items-start justify-between">
-            <Text className="text-xl font-bold text-zinc-900 dark:text-white">
-              #{order.orderNumber}
-            </Text>
+            <View className="flex-1 pr-3">
+              <Text className="text-xl font-bold text-zinc-900 dark:text-white" numberOfLines={1}>
+                {order.customer?.nickname ?? '—'}
+              </Text>
+              <Text className="mt-0.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                {fulfillmentLabel(order.fulfillmentType)}
+              </Text>
+            </View>
             <View className="items-end gap-1">
-              <Badge label={order.paymentStatus} variant={paymentVariant(order.paymentStatus)} />
-              <Badge label={order.orderStatus} variant={statusVariant(order.orderStatus)} />
+              <Badge label={paymentLabel(order.paymentStatus)} variant={paymentVariant(order.paymentStatus)} />
+              <Badge label={statusLabel(order.orderStatus)} variant={statusVariant(order.orderStatus)} />
             </View>
           </View>
-          <Text className="text-sm text-zinc-600 dark:text-zinc-400">
-            Customer: {order.customer?.nickname ?? '—'}
+          <Text className="text-xs text-zinc-400 dark:text-zinc-500">
+            #{order.orderNumber}
           </Text>
-          <Text className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
-            Type: {order.fulfillmentType}
+          <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+            {new Date(order.createdAt).toLocaleString()}
           </Text>
-          <Text className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
-            Date: {new Date(order.createdAt).toLocaleString()}
-          </Text>
-          <Text className="mt-0.5 text-sm text-zinc-600 dark:text-zinc-400">
-            Branch: {order.branch?.name ?? '—'}
+          <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+            {order.branch?.name ?? '—'}
           </Text>
         </View>
 
@@ -108,8 +110,8 @@ export default function OrderDetailScreen() {
             </Text>
           </View>
           <View className="mt-2 flex-row justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
-            <Text className="text-sm font-bold text-zinc-900 dark:text-white">Total</Text>
-            <Text className="text-base font-bold text-zinc-900 dark:text-white">
+            <Text className="text-base font-bold text-zinc-900 dark:text-white">Total</Text>
+            <Text className="text-xl font-bold text-zinc-900 dark:text-white">
               ₱{Number(order.total).toFixed(2)}
             </Text>
           </View>

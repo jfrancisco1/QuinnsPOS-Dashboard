@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { FlatList, Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, SectionList, Text, TextInput, TouchableOpacity, View } from 'react-native';
+
+import type { Order } from '@/lib/api';
 
 import { router } from 'expo-router';
 
 import { Badge } from '@/components/ui/badge';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { ListItem } from '@/components/ui/list-item';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -33,7 +36,25 @@ export default function OrdersScreen() {
     canGoForward,
     canGoBack,
     handlePeriodSelect,
+    searchQuery,
+    setSearchQuery,
   } = useOrders({ token, selectedBranch, loadBranches });
+
+  const sections = orders.reduce<{ title: string; data: Order[] }[]>((acc, order) => {
+    const label = new Date(order.createdAt).toLocaleDateString('en-PH', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    const existing = acc.find((s) => s.title === label);
+    if (existing) {
+      existing.data.push(order);
+    } else {
+      acc.push({ title: label, data: [order] });
+    }
+    return acc;
+  }, []);
 
   return (
     <View className="flex-1 bg-page dark:bg-page-dark">
@@ -108,18 +129,46 @@ export default function OrdersScreen() {
         }}
       />
 
+      <View className="border-b border-zinc-200 px-4 py-2 dark:border-zinc-800">
+        <View className="flex-row items-center rounded-lg bg-zinc-100 px-3 dark:bg-zinc-800">
+          <IconSymbol name="magnifyingglass" size={16} color="#71717a" />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by customer name..."
+            placeholderTextColor="#71717a"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            className="flex-1 py-2.5 pl-2 text-sm text-zinc-900 dark:text-white"
+          />
+          {searchQuery.length > 0 && (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8}>
+              <IconSymbol name="xmark.circle.fill" size={16} color="#71717a" />
+            </Pressable>
+          )}
+        </View>
+      </View>
+
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-sm text-muted">Loading...</Text>
         </View>
       ) : (
-        <FlatList
-          data={orders}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
+          renderSectionHeader={({ section }) => (
+            <View className="border-b border-divide bg-page px-4 py-2 dark:border-divide-dark dark:bg-page-dark">
+              <Text className="text-sm font-bold text-primary">
+                {section.title}
+              </Text>
+            </View>
+          )}
           renderItem={({ item }) => (
             <ListItem
               title={item.customer?.nickname ?? 'Unknown'}
-              subtitle={`${new Date(item.createdAt).toLocaleDateString()}  ·  ${fulfillmentLabel(item.fulfillmentType)}`}
+              subtitle={`${fulfillmentLabel(item.fulfillmentType)}`}
               description={item.customer?.address ?? undefined}
               right={
                 <View className="items-end gap-1">

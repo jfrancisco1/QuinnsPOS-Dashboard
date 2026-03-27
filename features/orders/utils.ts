@@ -21,6 +21,12 @@ export function paymentLabel(status: string): string {
       return 'Cash';
     case 'paid_gcash':
       return 'GCash';
+    case 'paid':
+      return 'Paid';
+    case 'unpaid':
+      return 'Unpaid';
+    case 'partial':
+      return 'Partial';
     default:
       return status ?? '';
   }
