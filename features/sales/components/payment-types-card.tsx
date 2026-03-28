@@ -20,7 +20,7 @@ export function PaymentTypesCard({ salesByPayment }: Props) {
       {salesByPayment.map((row, i) => {
         const { icon, color } = getPaymentIcon(row.payment_method);
         return (
-          <View key={row.payment_method}>
+          <View key={`${row.payment_method}-${i}`}>
             <View className="flex-row items-center justify-between py-2.5">
               <View className="flex-1 flex-row items-center gap-2">
                 <View

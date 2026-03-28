@@ -23,7 +23,7 @@ export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
         const color = row.color ?? item?.color ?? null;
         const shape = row.shape ?? item?.shape ?? null;
         return (
-          <View key={row.item_id}>
+          <View key={`${row.item_id}-${i}`}>
             <View className="flex-row items-center justify-between py-2.5">
               <View className="flex-1 flex-row items-center gap-2">
                 {color && shape && (
