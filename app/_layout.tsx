@@ -78,6 +78,14 @@ function RootLayoutNav() {
         name="order/[orderNumber]"
         options={{ title: 'Order Detail' }}
       />
+      <Stack.Screen
+        name="new-expense"
+        options={{ presentation: 'modal', title: 'New Expense' }}
+      />
+      <Stack.Screen
+        name="edit-expense"
+        options={{ presentation: 'modal', title: 'Edit Expense' }}
+      />
     </Stack>
   );
 }

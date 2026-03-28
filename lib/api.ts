@@ -108,7 +108,7 @@ export type SalesByItem = {
 };
 
 export type Expense = {
-  id: number;
+  id: string;
   description: string;
   amount: number;
   expense_date: string;
@@ -140,7 +140,7 @@ export type CreateExpensePayload = {
   description: string;
   amount: number;
   expense_date: string;
-  note?: string;
+  note: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -190,17 +190,29 @@ async function authFetch<T>(
       ...options,
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
         Authorization: `Bearer ${token}`,
         ...(options.headers ?? {}),
       },
     });
-    const json: unknown = await response.json();
+    let json: unknown;
+    try {
+      json = await response.json();
+    } catch {
+      return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
+    }
     if (response.ok) {
       return { ok: true, data: json as T };
     }
     const err = json as Record<string, unknown>;
-    const message =
+    let message =
       typeof err["message"] === "string" ? err["message"] : "Request failed";
+    if (err["errors"] && typeof err["errors"] === "object") {
+      const firstField = Object.values(err["errors"] as Record<string, string[]>)[0];
+      if (Array.isArray(firstField) && firstField.length > 0) {
+        message = firstField[0];
+      }
+    }
     return { ok: false, error: { message, status: response.status } };
   } catch {
     return { ok: false, error: { message: "Network error", status: 0 } };
@@ -469,4 +481,15 @@ export function createExpense(token: string, data: CreateExpensePayload) {
     method: "POST",
     body: JSON.stringify(data),
   });
+}
+
+export function updateExpense(token: string, id: string, data: CreateExpensePayload) {
+  return authFetch<Expense>(token, `/expenses/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteExpense(token: string, id: string) {
+  return authFetch<unknown>(token, `/expenses/${id}`, { method: "DELETE" });
 }

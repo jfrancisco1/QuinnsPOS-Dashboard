@@ -1,0 +1,96 @@
+import { useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+
+import { router } from 'expo-router';
+
+import { DatePickerInput } from '@/components/ui/date-picker-input';
+import { TextInput } from '@/components/ui/text-input';
+import { useAuth } from '@/context/auth-context';
+import { createExpense } from '@/lib/api';
+
+function toIso(date: Date) {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+export default function NewExpenseScreen() {
+  const { token } = useAuth();
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [expenseDate, setExpenseDate] = useState(new Date());
+  const [note, setNote] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    if (!description.trim()) { setError('Description is required.'); return; }
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) < 0) {
+      setError('Enter a valid amount.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    const result = await createExpense(token!, {
+      description: description.trim(),
+      amount: parseFloat(amount),
+      expense_date: toIso(expenseDate),
+      note: note.trim() || null,
+    });
+    setIsSubmitting(false);
+    if (result.ok) {
+      router.back();
+    } else {
+      setError(result.error.message);
+    }
+  }
+
+  return (
+    <ScrollView className="flex-1 bg-page dark:bg-page-dark">
+      <View className="gap-4 p-4">
+        <TextInput
+          label="Description *"
+          placeholder="e.g. Detergent supplies"
+          value={description}
+          onChangeText={setDescription}
+          autoCapitalize="sentences"
+          autoCorrect={false}
+        />
+        <TextInput
+          label="Amount *"
+          placeholder="0.00"
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="decimal-pad"
+        />
+        <DatePickerInput
+          label="Date *"
+          value={expenseDate}
+          onChange={setExpenseDate}
+        />
+        <TextInput
+          label="Note"
+          placeholder="Optional note"
+          value={note}
+          onChangeText={setNote}
+          autoCapitalize="sentences"
+          autoCorrect={false}
+        />
+
+        {error ? <Text className="text-sm text-red-500 dark:text-red-400">{error}</Text> : null}
+
+        <TouchableOpacity
+          onPress={handleSubmit}
+          disabled={isSubmitting}
+          className={`w-full items-center rounded-xl bg-primary py-3.5${isSubmitting ? ' opacity-50' : ''}`}
+          activeOpacity={0.8}
+        >
+          <Text className="text-sm font-semibold text-white">
+            {isSubmitting ? 'Creating...' : 'Create Expense'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}

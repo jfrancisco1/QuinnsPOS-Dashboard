@@ -24,6 +24,8 @@ const MAPPING = {
   'storefront.fill': 'store',
   'magnifyingglass': 'search',
   'xmark.circle.fill': 'cancel',
+  'banknote.fill': 'payments',
+  'plus': 'add',
 } as IconMapping;
 
 /**

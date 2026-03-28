@@ -7,7 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 type Props = {
   title: string;
   subtitle?: string;
-  onBranchPress: () => void;
+  onBranchPress?: () => void;
   children?: ReactNode;
 };
 
@@ -27,13 +27,17 @@ export function ScreenHeader({ title, subtitle, onBranchPress, children }: Props
           )}
         </View>
         <View className="flex-1" />
-        <TouchableOpacity
-          onPress={onBranchPress}
-          activeOpacity={0.75}
-          className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
-        >
-          <IconSymbol name="storefront.fill" size={20} color="#fff" />
-        </TouchableOpacity>
+        {onBranchPress ? (
+          <TouchableOpacity
+            onPress={onBranchPress}
+            activeOpacity={0.75}
+            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
+          >
+            <IconSymbol name="storefront.fill" size={20} color="#fff" />
+          </TouchableOpacity>
+        ) : (
+          <View className="h-10 w-10" />
+        )}
       </View>
       {children}
     </View>
