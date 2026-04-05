@@ -293,6 +293,21 @@ export async function getOrders(
   };
 }
 
+export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
+
+export async function updateOrderPaymentStatus(
+  token: string,
+  orderNumber: string,
+  paymentStatus: PaymentStatus,
+): Promise<ApiResult<Order>> {
+  const result = await authFetch<unknown>(token, `/orders/${orderNumber}/payment-status?paymentStatus=${paymentStatus}`, {
+    method: 'PATCH',
+  });
+  if (!result.ok) return result;
+  const order = extractObject<Order>(result.data) ?? (result.data as Order);
+  return { ok: true, data: order };
+}
+
 export async function getOrderByNumber(
   token: string,
   id: string,
