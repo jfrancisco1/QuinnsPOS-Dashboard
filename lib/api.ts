@@ -61,7 +61,6 @@ export type Branch = {
 };
 
 export type Order = {
-  id: string;
   orderNumber: string;
   customer_id: string;
   customer: Customer;
@@ -359,11 +358,15 @@ export async function getSalesByPaymentType(
     `/reports/sales-by-payment-type?${params.toString()}`,
   );
   if (!result.ok) return result;
-  // response wraps data under "breakdown"
+  // response wraps data under "breakdown" and includes an "unpaid" summary
   const raw = result.data as Record<string, unknown>;
   const breakdown = Array.isArray(raw["breakdown"])
     ? (raw["breakdown"] as SalesByPaymentType[])
     : [];
+  const unpaid = raw["unpaid"] as { transactions: number; amount: number } | undefined;
+  if (unpaid) {
+    breakdown.push({ payment_method: "unpaid", transactions: unpaid.transactions, payment_amount: unpaid.amount });
+  }
   return { ok: true, data: breakdown };
 }
 

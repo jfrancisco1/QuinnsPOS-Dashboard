@@ -176,7 +176,7 @@ export default function OrdersScreen() {
       ) : (
         <SectionList
           sections={sections}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.orderNumber}
           renderSectionHeader={({ section }) => (
             <View className="border-b border-divide bg-page px-4 py-2 dark:border-divide-dark dark:bg-page-dark">
               <Text className="text-sm font-bold text-emerald">
@@ -210,7 +210,7 @@ export default function OrdersScreen() {
                   </View>
                 </View>
               }
-              onPress={() => router.push(`/order/${item.id}`)}
+              onPress={() => router.push(`/order/${item.orderNumber}`)}
             />
           )}
           onEndReached={loadMore}

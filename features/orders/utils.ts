@@ -5,6 +5,8 @@ export function paymentVariant(status: string): BadgeVariant {
     case 'paid':
     case 'paid_cash':
     case 'paid_gcash':
+    case 'paid_bank':
+    case 'paid_others':
       return 'success';
     case 'unpaid':
       return 'danger';
@@ -21,6 +23,10 @@ export function paymentLabel(status: string): string {
       return 'Cash';
     case 'paid_gcash':
       return 'GCash';
+    case 'paid_bank':
+      return 'Bank';
+    case 'paid_others':
+      return 'Others';
     case 'paid':
       return 'Paid';
     case 'unpaid':
