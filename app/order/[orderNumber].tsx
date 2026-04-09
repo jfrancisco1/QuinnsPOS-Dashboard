@@ -38,8 +38,11 @@ function HistoryCard({
               <Text className="text-sm font-medium text-zinc-900 dark:text-white">
                 {formatStatus(entry.fromStatus)} → {formatStatus(entry.toStatus)}
               </Text>
-              <Text className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-                {new Date(entry.changedAt).toLocaleString()}
+              <Text className="mt-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                {new Date(entry.changedAt).toLocaleString(undefined, {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                  hour: 'numeric', minute: '2-digit',
+                })}
               </Text>
               {entry.updatedBy && (
                 <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
@@ -119,11 +122,11 @@ export default function OrderDetailScreen() {
                 <Badge label={statusLabel(order.orderStatus)} variant={statusVariant(order.orderStatus)} />
               </View>
             </View>
-            <Text className="text-xs text-zinc-400 dark:text-zinc-500">
-              #{order.orderNumber}
-            </Text>
-            <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-              {new Date(order.createdAt).toLocaleString()}
+            <Text className="mt-1 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+              {new Date(order.createdAt).toLocaleString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              })}
             </Text>
             <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
               {order.branch?.name ?? '—'}
