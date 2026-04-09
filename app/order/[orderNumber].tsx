@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { useLocalSearchParams } from 'expo-router';
 
 import { Badge } from '@/components/ui/badge';
+import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
 import { getOrderByNumber, updateOrderPaymentStatus, type Order, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
@@ -64,6 +65,7 @@ export default function OrderDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (!token || !orderNumber) return;
@@ -80,8 +82,9 @@ export default function OrderDetailScreen() {
     const result = await updateOrderPaymentStatus(token, order.orderNumber, status);
     if (result.ok) {
       setOrder(result.data);
+      setToast({ message: 'Payment status updated', variant: 'success' });
     } else {
-      Alert.alert('Error', result.error.message);
+      setToast({ message: result.error.message, variant: 'error' });
     }
     setUpdatingPayment(false);
   }
@@ -215,6 +218,16 @@ export default function OrderDetailScreen() {
           </Text>
         </Pressable>
       </View>
+
+      {/* Toast notifier */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          variant={toast.variant}
+          visible={!!toast}
+          onHide={() => setToast(null)}
+        />
+      )}
 
       {/* Payment status modal */}
       <Modal
