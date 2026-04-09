@@ -6,7 +6,53 @@ import { useLocalSearchParams } from 'expo-router';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/auth-context';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
-import { getOrderByNumber, updateOrderPaymentStatus, type Order, type PaymentStatus } from '@/lib/api';
+import { getOrderByNumber, updateOrderPaymentStatus, type Order, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
+
+function HistoryCard({
+  title,
+  entries,
+  formatStatus,
+}: {
+  title: string;
+  entries: (PaymentHistoryEntry | OrderStatusHistoryEntry)[];
+  formatStatus: (s: string) => string;
+}) {
+  return (
+    <View className="rounded-xl bg-white dark:bg-zinc-900">
+      <Text className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:text-white">
+        {title}
+      </Text>
+      {[...entries]
+        .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
+        .map((entry, i) => {
+        const isLast = i === entries.length - 1;
+        return (
+          <View key={i} className="flex-row px-4 py-3">
+            {/* Timeline indicator */}
+            <View className="mr-3 items-center">
+              <View className="h-2.5 w-2.5 rounded-full bg-primary mt-1" />
+              {!isLast && <View className="mt-1 w-px flex-1 bg-zinc-200 dark:bg-zinc-700" />}
+            </View>
+            {/* Content */}
+            <View className="flex-1 pb-1">
+              <Text className="text-sm font-medium text-zinc-900 dark:text-white">
+                {formatStatus(entry.fromStatus)} → {formatStatus(entry.toStatus)}
+              </Text>
+              <Text className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                {new Date(entry.changedAt).toLocaleString()}
+              </Text>
+              {entry.updatedBy && (
+                <Text className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
+                  by {entry.updatedBy.name}
+                </Text>
+              )}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 export default function OrderDetailScreen() {
   const { token } = useAuth();
@@ -132,6 +178,24 @@ export default function OrderDetailScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Order status history */}
+          {(order.orderStatusHistory ?? []).length > 0 && (
+            <HistoryCard
+              title="Status History"
+              entries={order.orderStatusHistory!}
+              formatStatus={statusLabel}
+            />
+          )}
+
+          {/* Payment history */}
+          {(order.paymentHistory ?? []).length > 0 && (
+            <HistoryCard
+              title="Payment History"
+              entries={order.paymentHistory!}
+              formatStatus={paymentLabel}
+            />
+          )}
         </View>
       </ScrollView>
 

@@ -60,6 +60,8 @@ export function statusLabel(status: string): string {
       return 'Pending';
     case 'in_progress':
       return 'In Progress';
+    case 'ready':
+      return 'Ready';
     case 'cancelled':
       return 'Cancelled';
     default:
@@ -75,6 +77,8 @@ export function statusVariant(status: string): BadgeVariant {
       return 'warning';
     case 'in_progress':
       return 'info';
+    case 'ready':
+      return 'warning';
     case 'cancelled':
       return 'danger';
     default:

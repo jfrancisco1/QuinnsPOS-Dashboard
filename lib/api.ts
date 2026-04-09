@@ -42,6 +42,26 @@ export type OrderItem = {
   price: number;
 };
 
+export type HistoryUser = {
+  id: number;
+  name: string;
+  role: string;
+};
+
+export type PaymentHistoryEntry = {
+  fromStatus: string;
+  toStatus: string;
+  changedAt: string;
+  updatedBy: HistoryUser | null;
+};
+
+export type OrderStatusHistoryEntry = {
+  fromStatus: string;
+  toStatus: string;
+  changedAt: string;
+  updatedBy: HistoryUser | null;
+};
+
 export type Customer = {
   id: string;
   nickname: string;
@@ -74,6 +94,8 @@ export type Order = {
   createdAt: string;
   branch: Branch;
   items: OrderItem[];
+  paymentHistory?: PaymentHistoryEntry[];
+  orderStatusHistory?: OrderStatusHistoryEntry[];
 };
 
 export type SalesSummary = {
