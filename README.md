@@ -1,50 +1,90 @@
-# Welcome to your Expo app 👋
+# Quinn's POS Dashboard
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+An admin dashboard for managing the **Quinn's POS** point-of-sale system. Built with Expo (React Native), it serves as a CMS-style interface for administrators to view and manage data across the Quinn's POS app — including products, orders, expenses, sales reports, and more.
 
-## Get started
+---
 
-1. Install dependencies
+## Tech Stack
+
+- [Expo](https://expo.dev) / React Native (with New Architecture)
+- [Expo Router](https://expo.dev/router) — file-based navigation
+- [NativeWind](https://www.nativewind.dev/) — Tailwind CSS for React Native
+- TypeScript
+
+## Prerequisites
+
+- Node.js >= 18
+- npm
+- Expo CLI (`npm install -g expo-cli`)
+- For iOS: Xcode + iOS Simulator
+- For Android: Android Studio + Emulator
+
+## Getting Started
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repo-url>
+   cd QuinnsPOS-Dashboard
+   ```
+
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Start the development server**
 
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+   Scan the QR code with Expo Go, or open in a simulator.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Available Scripts
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+| Command | Description |
+|---|---|
+| `npm start` | Start Expo dev server |
+| `npm run android` | Launch on Android emulator |
+| `npm run ios` | Launch on iOS simulator |
+| `npm run web` | Launch web version in browser |
+| `npm run lint` | Run ESLint |
 
-## Get a fresh project
+## Project Structure
 
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+app/              # File-based routes (Expo Router)
+  (tabs)/         # Tab navigation screens
+  _layout.tsx     # Root layout
+features/         # Feature modules (components, hooks, types)
+components/
+  ui/             # Shared UI primitives
+hooks/            # Cross-feature hooks
+lib/              # API client and utilities
+docs/             # Coding standards and documentation
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## API
 
-## Learn more
+The app connects to the Quinn's POS backend:
 
-To learn more about developing your project with Expo, look at the following resources:
+- **Base URL:** `https://laundryappapi-production.up.railway.app/api/v1`
+- **Interactive docs:** `https://laundryappapi-production.up.railway.app/docs`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+All requests require `Authorization: Bearer <token>` except `POST /login`.
 
-## Join the community
+## Environment
 
-Join our community of developers creating universal apps.
+No `.env` file is required — the API base URL is configured in `lib/api.ts`.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Contributing
+
+1. Create a feature branch from `master`
+2. Follow the coding standards in [`docs/coding-standards.md`](docs/coding-standards.md)
+3. Submit a pull request
+
+## License
+
+Private — all rights reserved.
