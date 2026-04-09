@@ -23,6 +23,7 @@ export default function EditItemScreen() {
     category_id: string;
     color: string;
     shape: string;
+    sort_order: string;
   }>();
   const itemId = Number(params.id);
 
@@ -36,6 +37,7 @@ export default function EditItemScreen() {
   );
   const [color, setColor] = useState<string | null>(params.color || null);
   const [shape, setShape] = useState<ItemShape | null>((params.shape as ItemShape) || null);
+  const [sortOrder, setSortOrder] = useState(params.sort_order ?? '0');
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -65,6 +67,7 @@ export default function EditItemScreen() {
       shape: shape ?? undefined,
       is_active: isActive,
       category_id: categoryId,
+      sort_order: Number(sortOrder),
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -113,6 +116,13 @@ export default function EditItemScreen() {
           placeholder="Optional description"
           value={description}
           onChangeText={setDescription}
+        />
+        <TextInput
+          label="Sort Order"
+          placeholder="0"
+          value={sortOrder}
+          onChangeText={setSortOrder}
+          keyboardType="numeric"
         />
 
         <View>

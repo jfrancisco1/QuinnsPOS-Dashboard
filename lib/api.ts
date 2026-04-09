@@ -29,6 +29,7 @@ export type Item = {
   color: string | null;
   shape: string | null;
   is_active: boolean;
+  sort_order: number;
   category: Category;
   created_at: string;
 };
@@ -127,6 +128,7 @@ export type CreateItemPayload = {
   shape?: string;
   is_active: boolean;
   category_id: number;
+  sort_order?: number;
 };
 
 export type CreateCategoryPayload = {

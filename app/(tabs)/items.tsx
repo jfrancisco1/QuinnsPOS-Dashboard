@@ -51,7 +51,10 @@ export default function CatalogScreen() {
     }
     return Array.from(map.values())
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map(({ title, items: data }) => ({ title, data: chunkArray(data, 2) }));
+      .map(({ title, items: data }) => ({
+        title,
+        data: chunkArray([...data].sort((a, b) => a.sort_order - b.sort_order), 2),
+      }));
   })();
 
   return (

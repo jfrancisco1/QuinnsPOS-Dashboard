@@ -24,6 +24,7 @@ export function ItemCard({ item }: ItemCardProps) {
         category_id: String(item.category?.id ?? ""),
         color: item.color ?? "",
         shape: item.shape ?? "",
+        sort_order: String(item.sort_order ?? 0),
       },
     });
   }

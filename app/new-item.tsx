@@ -22,6 +22,7 @@ export default function NewItemScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [color, setColor] = useState<string | null>(null);
   const [shape, setShape] = useState<ItemShape | null>(null);
+  const [sortOrder, setSortOrder] = useState('0');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +50,7 @@ export default function NewItemScreen() {
       shape: shape ?? undefined,
       is_active: isActive,
       category_id: categoryId,
+      sort_order: Number(sortOrder),
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -81,6 +83,13 @@ export default function NewItemScreen() {
           placeholder="Optional description"
           value={description}
           onChangeText={setDescription}
+        />
+        <TextInput
+          label="Sort Order"
+          placeholder="0"
+          value={sortOrder}
+          onChangeText={setSortOrder}
+          keyboardType="numeric"
         />
 
         <View>
