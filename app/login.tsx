@@ -1,25 +1,25 @@
-import { useState } from 'react';
-import { Dimensions, Image, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from "react";
+import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
-import { TextInput } from '@/components/ui/text-input';
-import { useAuth } from '@/context/auth-context';
+import { TextInput } from "@/components/ui/text-input";
+import { useAuth } from "@/context/auth-context";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleLogin() {
     if (!username.trim() || !password.trim()) {
-      setErrorMessage('Username and password are required.');
+      setErrorMessage("Username and password are required.");
       return;
     }
 
@@ -31,7 +31,7 @@ export default function LoginScreen() {
     setIsSubmitting(false);
 
     if (result.success) {
-      router.replace('/(tabs)');
+      router.replace("/(tabs)");
     } else {
       setErrorMessage(result.message);
     }
@@ -45,21 +45,106 @@ export default function LoginScreen() {
         className="items-center justify-center overflow-hidden bg-primary"
       >
         {/* Decorative bubbles */}
-        <View style={{ position: 'absolute', top: -40, left: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-        <View style={{ position: 'absolute', top: 20, right: -30, width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-        <View style={{ position: 'absolute', bottom: -30, left: 30, width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-        <View style={{ position: 'absolute', bottom: 20, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        <View style={{ position: 'absolute', top: '40%', left: -20, width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(255,255,255,0.05)' }} />
-        <View style={{ position: 'absolute', bottom: 60, right: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <View
+          style={{
+            position: "absolute",
+            top: -40,
+            left: -40,
+            width: 160,
+            height: 160,
+            borderRadius: 80,
+            backgroundColor: "rgba(255,255,255,0.08)",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: 20,
+            right: -30,
+            width: 110,
+            height: 110,
+            borderRadius: 55,
+            backgroundColor: "rgba(255,255,255,0.06)",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: -30,
+            left: 30,
+            width: 90,
+            height: 90,
+            borderRadius: 45,
+            backgroundColor: "rgba(255,255,255,0.07)",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: 20,
+            right: 20,
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: "rgba(255,255,255,0.1)",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: "40%",
+            left: -20,
+            width: 70,
+            height: 70,
+            borderRadius: 35,
+            backgroundColor: "rgba(255,255,255,0.05)",
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: 60,
+            right: -20,
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            backgroundColor: "rgba(255,255,255,0.06)",
+          }}
+        />
 
         {/* Logo */}
         <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 200, height: 200 }}
+          source={require("@/assets/images/quinns_logo_white.png")}
+          style={{ width: 100, height: 100 }}
           resizeMode="contain"
         />
-        <Text className="mt-4 text-2xl font-bold text-white">Quinns POS</Text>
-        <Text className="mt-1 text-sm font-medium tracking-widest text-primary-200">DASHBOARD</Text>
+        <Text
+          style={{
+            fontFamily: "Ceoruse",
+            fontSize: 38,
+            color: "white",
+            marginTop: 16,
+          }}
+        >
+          QUINNS
+        </Text>
+        <Text
+          style={{
+            fontFamily: "HelveticaRoundedBold",
+            fontSize: 13,
+            letterSpacing: 3,
+            color: "#d8b4fe",
+            marginTop: 4,
+          }}
+        >
+          LAUNDRY MANAGEMENT
+        </Text>
+        <Text
+          style={{ fontFamily: "HelveticaRoundedBold" }}
+          className="mt-1 text-md font-medium tracking-widest text-primary-200"
+        >
+          DASHBOARD
+        </Text>
       </View>
 
       {/* Form Section */}
@@ -81,9 +166,12 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             editable={!isSubmitting}
             rightIcon={
-              <TouchableOpacity onPress={() => setShowPassword((v) => !v)} activeOpacity={0.7}>
+              <TouchableOpacity
+                onPress={() => setShowPassword((v) => !v)}
+                activeOpacity={0.7}
+              >
                 <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
                   size={20}
                   color="#71717a"
                 />
@@ -92,17 +180,19 @@ export default function LoginScreen() {
           />
 
           {errorMessage ? (
-            <Text className="text-sm text-red-500 dark:text-red-400">{errorMessage}</Text>
+            <Text className="text-sm text-red-500 dark:text-red-400">
+              {errorMessage}
+            </Text>
           ) : null}
 
           <TouchableOpacity
-            className={`mt-2 w-full items-center rounded-lg bg-primary py-3.5${isSubmitting ? ' opacity-50' : ''}`}
+            className={`mt-2 w-full items-center rounded-lg bg-primary py-3.5${isSubmitting ? " opacity-50" : ""}`}
             onPress={handleLogin}
             activeOpacity={0.8}
             disabled={isSubmitting}
           >
             <Text className="text-sm font-semibold text-white">
-              {isSubmitting ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? "Signing in..." : "Sign in"}
             </Text>
           </TouchableOpacity>
         </View>

@@ -2,9 +2,10 @@ import '../global.css';
 
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DarkTheme, DefaultTheme, Theme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -44,18 +45,28 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const { token, isLoading } = useAuth();
+  const initialAuthHandled = useRef(false);
 
+  // Always show splash on launch
+  useEffect(() => {
+    router.replace('/splash-preview');
+  }, []);
+
+  // After splash handles first navigation, redirect to login on logout
   useEffect(() => {
     if (isLoading) return;
+    if (!initialAuthHandled.current) {
+      initialAuthHandled.current = true;
+      return;
+    }
     if (!token) {
       router.replace('/login');
-    } else {
-      router.replace('/(tabs)');
     }
   }, [token, isLoading]);
 
   return (
     <Stack>
+      <Stack.Screen name="splash-preview" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
@@ -92,6 +103,12 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [fontsLoaded] = useFonts({
+    Ceoruse: require('@/assets/fonts/ceoruse.otf'),
+    HelveticaRoundedBold: require('@/assets/fonts/HelveticaRoundedBold.otf'),
+  });
+
+  if (!fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
