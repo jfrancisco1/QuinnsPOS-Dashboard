@@ -24,14 +24,5 @@
         "image": "latest"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "your@apple.com",
-        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
-        "appleTeamId": "YOUR_APPLE_TEAM_ID"
-      }
-    }
   }
 }
