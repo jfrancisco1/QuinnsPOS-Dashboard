@@ -1,5 +1,6 @@
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 
+import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
 
 export type BranchPickerModalProps = {
@@ -9,6 +10,7 @@ export type BranchPickerModalProps = {
 
 export function BranchPickerModal({ visible, onClose }: BranchPickerModalProps) {
   const { branches, selectedBranch, setSelectedBranch } = useBranch();
+  const { logout } = useAuth();
 
   return (
     <Modal
@@ -59,6 +61,14 @@ export function BranchPickerModal({ visible, onClose }: BranchPickerModalProps) 
               )}
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            onPress={() => { onClose(); logout(); }}
+            className="mt-2 rounded-2xl bg-red-50 px-4 py-3.5 dark:bg-red-950/30"
+          >
+            <Text className="text-center font-semibold text-red-500">
+              Log Out
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     </Modal>

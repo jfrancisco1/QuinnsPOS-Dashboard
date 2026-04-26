@@ -76,9 +76,9 @@ export function statusVariant(status: string): BadgeVariant {
     case 'pending':
       return 'warning';
     case 'in_progress':
-      return 'info';
-    case 'ready':
       return 'warning';
+    case 'ready':
+      return 'info';
     case 'cancelled':
       return 'danger';
     default:

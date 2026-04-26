@@ -403,7 +403,8 @@ export async function getSalesByPaymentType(
     ? (raw["breakdown"] as SalesByPaymentType[])
     : [];
   const unpaid = raw["unpaid"] as { transactions: number; amount: number } | undefined;
-  if (unpaid) {
+  const alreadyHasUnpaid = breakdown.some((r) => r.payment_method.toLowerCase() === "unpaid");
+  if (unpaid && !alreadyHasUnpaid) {
     breakdown.push({ payment_method: "unpaid", transactions: unpaid.transactions, payment_amount: unpaid.amount });
   }
   return { ok: true, data: breakdown };
