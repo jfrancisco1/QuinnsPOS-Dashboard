@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
-import { getOrderByNumber, updateOrderPaymentStatus, type Order, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
+import { getOrderByNumber, updateOrderPaymentStatus, updateOrderStatus, type Order, type OrderStatus, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
 
 function HistoryCard({
   title,
@@ -64,7 +64,9 @@ export default function OrderDetailScreen() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingPayment, setUpdatingPayment] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -74,6 +76,20 @@ export default function OrderDetailScreen() {
       setLoading(false);
     });
   }, [token, orderNumber]);
+
+  async function handleOrderStatusChange(status: OrderStatus) {
+    if (!token || !order || status === order.orderStatus || updatingStatus) return;
+    setStatusModalVisible(false);
+    setUpdatingStatus(true);
+    const result = await updateOrderStatus(token, order.orderNumber, status);
+    if (result.ok) {
+      setOrder(result.data);
+      setToast({ message: 'Order status updated', variant: 'success' });
+    } else {
+      setToast({ message: result.error.message, variant: 'error' });
+    }
+    setUpdatingStatus(false);
+  }
 
   async function handlePaymentStatusChange(status: PaymentStatus) {
     if (!token || !order || status === order.paymentStatus || updatingPayment) return;
@@ -207,16 +223,28 @@ export default function OrderDetailScreen() {
 
       {/* Fixed bottom CTA */}
       <View className="border-t border-zinc-100 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
-        <Pressable
-          onPress={() => setPaymentModalVisible(true)}
-          disabled={updatingPayment}
-          className="flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:bg-primary-700"
-        >
-          {updatingPayment && <ActivityIndicator size="small" color="white" />}
-          <Text className="text-base font-semibold text-white">
-            {updatingPayment ? 'Updating…' : 'Update Payment Status'}
-          </Text>
-        </Pressable>
+        <View className="flex-row gap-3">
+          <Pressable
+            onPress={() => setStatusModalVisible(true)}
+            disabled={updatingStatus}
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-zinc-200 py-4 active:opacity-70 dark:bg-zinc-700"
+          >
+            {updatingStatus && <ActivityIndicator size="small" color="#18181b" />}
+            <Text className="text-base font-semibold text-zinc-900 dark:text-white">
+              {updatingStatus ? 'Updating…' : 'Order Status'}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setPaymentModalVisible(true)}
+            disabled={updatingPayment}
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-xl bg-primary py-4 active:bg-primary-700"
+          >
+            {updatingPayment && <ActivityIndicator size="small" color="white" />}
+            <Text className="text-base font-semibold text-white">
+              {updatingPayment ? 'Updating…' : 'Payment Status'}
+            </Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Toast notifier */}
@@ -228,6 +256,65 @@ export default function OrderDetailScreen() {
           onHide={() => setToast(null)}
         />
       )}
+
+      {/* Order status modal */}
+      <Modal
+        visible={statusModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setStatusModalVisible(false)}
+      >
+        <TouchableOpacity
+          className="flex-1 justify-end bg-black/40"
+          activeOpacity={1}
+          onPress={() => setStatusModalVisible(false)}
+        >
+          <View
+            className="rounded-t-3xl bg-white p-5 dark:bg-zinc-900"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.12,
+              shadowRadius: 20,
+              elevation: 12,
+            }}
+            onStartShouldSetResponder={() => true}
+          >
+            <Text className="mb-4 text-base font-bold text-zinc-900 dark:text-white">
+              Select Order Status
+            </Text>
+            {(
+              [
+                { value: 'pending', label: 'Pending' },
+                { value: 'in_progress', label: 'In Progress' },
+                { value: 'ready', label: 'Ready' },
+                { value: 'completed', label: 'Completed' },
+                { value: 'cancelled', label: 'Cancelled' },
+              ] as { value: OrderStatus; label: string }[]
+            ).map(({ value, label }) => {
+              const isActive = order.orderStatus === value;
+              return (
+                <TouchableOpacity
+                  key={value}
+                  onPress={() => handleOrderStatusChange(value)}
+                  className={`mb-2 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+                    isActive ? 'bg-primary' : 'bg-zinc-100 dark:bg-zinc-800'
+                  }`}
+                >
+                  <Text
+                    className={`font-semibold ${
+                      isActive ? 'text-white' : 'text-zinc-800 dark:text-zinc-200'
+                    }`}
+                  >
+                    {label}
+                  </Text>
+                  {isActive && <View className="h-2 w-2 rounded-full bg-white/80" />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Payment status modal */}
       <Modal

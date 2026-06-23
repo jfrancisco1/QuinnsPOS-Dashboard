@@ -186,7 +186,7 @@ export default function OrdersScreen() {
           )}
           renderItem={({ item }) => (
             <ListItem
-              title={item.customer?.nickname ?? "Unknown"}
+              title={(item.customer?.nickname ?? "Unknown").toUpperCase()}
               subtitle={`${fulfillmentLabel(item.fulfillmentType)}`}
               description={item.customer?.address ?? undefined}
               right={

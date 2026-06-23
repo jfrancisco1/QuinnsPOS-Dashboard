@@ -34,7 +34,7 @@ export default function CatalogScreen() {
   const [tab, setTab] = useState(0);
   const [branchModalVisible, setBranchModalVisible] = useState(false);
 
-  const { items, categories, loading } = useCatalog({ token, loadBranches });
+  const { items, categories, loading } = useCatalog({ token, selectedBranch, loadBranches });
 
   const sections = (() => {
     const map = new Map<number | null, { title: string; sortOrder: number; items: typeof items }>();

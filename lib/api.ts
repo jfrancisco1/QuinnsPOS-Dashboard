@@ -136,6 +136,8 @@ export type Expense = {
   expense_date: string;
   note: string | null;
   user_id: number;
+  branch_id: number | null;
+  tenant_id: number | null;
   created_at: string;
 };
 
@@ -164,6 +166,7 @@ export type CreateExpensePayload = {
   amount: number;
   expense_date: string;
   note: string | null;
+  branch_id?: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -318,6 +321,7 @@ export async function getOrders(
 }
 
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
+export type OrderStatus = 'pending' | 'in_progress' | 'ready' | 'completed' | 'cancelled';
 
 export async function updateOrderPaymentStatus(
   token: string,
@@ -325,6 +329,19 @@ export async function updateOrderPaymentStatus(
   paymentStatus: PaymentStatus,
 ): Promise<ApiResult<Order>> {
   const result = await authFetch<unknown>(token, `/orders/${orderNumber}/payment-status?paymentStatus=${paymentStatus}`, {
+    method: 'PATCH',
+  });
+  if (!result.ok) return result;
+  const order = extractObject<Order>(result.data) ?? (result.data as Order);
+  return { ok: true, data: order };
+}
+
+export async function updateOrderStatus(
+  token: string,
+  orderNumber: string,
+  orderStatus: OrderStatus,
+): Promise<ApiResult<Order>> {
+  const result = await authFetch<unknown>(token, `/orders/${orderNumber}/order-status?orderStatus=${orderStatus}`, {
     method: 'PATCH',
   });
   if (!result.ok) return result;
@@ -433,8 +450,11 @@ export async function getSalesByItem(
 
 // ─── Items ────────────────────────────────────────────────────────────────────
 
-export async function getItems(token: string): Promise<ApiResult<Item[]>> {
-  const result = await authFetch<unknown>(token, "/items");
+export async function getItems(token: string, opts?: { branch_id?: number }): Promise<ApiResult<Item[]>> {
+  const params = new URLSearchParams();
+  if (opts?.branch_id) params.set('branch_id', String(opts.branch_id));
+  const qs = params.toString();
+  const result = await authFetch<unknown>(token, `/items${qs ? `?${qs}` : ''}`);
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Item>(result.data) };
 }
@@ -513,8 +533,12 @@ export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
 
 export async function getExpenses(
   token: string,
+  opts?: { branch_id?: number },
 ): Promise<ApiResult<Expense[]>> {
-  const result = await authFetch<unknown>(token, "/expenses");
+  const params = new URLSearchParams();
+  if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  const query = params.toString();
+  const result = await authFetch<unknown>(token, `/expenses${query ? `?${query}` : ""}`);
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Expense>(result.data) };
 }

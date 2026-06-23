@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { DatePickerInput } from '@/components/ui/date-picker-input';
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useBranch } from '@/context/branch-context';
 import { createExpense } from '@/lib/api';
 
 function toIso(date: Date) {
@@ -16,6 +17,7 @@ function toIso(date: Date) {
 
 export default function NewExpenseScreen() {
   const { token } = useAuth();
+  const { selectedBranch } = useBranch();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date());
@@ -37,6 +39,7 @@ export default function NewExpenseScreen() {
       amount: parseFloat(amount),
       expense_date: toIso(expenseDate),
       note: note.trim() || null,
+      branch_id: selectedBranch?.id,
     });
     setIsSubmitting(false);
     if (result.ok) {

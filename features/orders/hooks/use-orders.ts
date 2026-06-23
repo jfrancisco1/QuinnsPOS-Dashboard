@@ -23,6 +23,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [offset, setOffset] = useState(0);
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
+  const [focusTick, setFocusTick] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -41,66 +42,59 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
 
   useFocusEffect(
     useCallback(() => {
-      if (!token) return;
-
+      if (token) loadBranches(token);
       const pending = takePendingDateRange();
-      let activePeriod: Period = period;
-      let activeFrom = customFrom;
-      let activeTo = customTo;
-      let activeOffset = offset;
-
       if (pending) {
-        activePeriod = 'custom';
-        activeFrom = pending.from;
-        activeTo = pending.to;
-        activeOffset = 0;
         setPeriod('custom');
         setCustomFrom(pending.from);
         setCustomTo(pending.to);
         setOffset(0);
       }
-
-      setLoading(true);
-
-      let fromStr: string;
-      let toStr: string;
-      if (activePeriod === 'custom') {
-        fromStr = activeFrom;
-        toStr = activeTo;
-      } else {
-        const range = computeDateRange(activePeriod, activeOffset);
-        fromStr = range.from;
-        toStr = range.to;
-      }
-
-      const paymentStatusParam = statusTab === 1 ? 'paid' : statusTab === 2 ? 'unpaid' : undefined;
-
-      fetchParamsRef.current = {
-        from: fromStr,
-        to: toStr,
-        branch_id: selectedBranch?.id,
-        search: debouncedSearch || undefined,
-        payment_status: paymentStatusParam,
-      };
-      nextCursorRef.current = null;
-      hasMoreRef.current = false;
-
-      Promise.all([
-        getOrders(token, fetchParamsRef.current),
-        loadBranches(token),
-      ]).then(([result]) => {
-        if (result.ok) {
-          const sorted = [...result.data.data].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-          );
-          setAllOrders(sorted);
-          nextCursorRef.current = result.data.nextCursor;
-          hasMoreRef.current = result.data.hasMore;
-        }
-        setLoading(false);
-      });
-    }, [token, period, offset, customFrom, customTo, selectedBranch, loadBranches, debouncedSearch, statusTab]),
+      setFocusTick((t) => t + 1);
+    }, [token, loadBranches]),
   );
+
+  useEffect(() => {
+    if (!token) return;
+
+    setLoading(true);
+
+    let fromStr: string;
+    let toStr: string;
+    if (period === 'custom') {
+      fromStr = customFrom;
+      toStr = customTo;
+    } else {
+      const range = computeDateRange(period, offset);
+      fromStr = range.from;
+      toStr = range.to;
+    }
+
+    const paymentStatusParam = statusTab === 2 ? 'unpaid' : undefined;
+
+    fetchParamsRef.current = {
+      from: fromStr,
+      to: toStr,
+      branch_id: selectedBranch?.id,
+      search: debouncedSearch || undefined,
+      payment_status: paymentStatusParam,
+    };
+    nextCursorRef.current = null;
+    hasMoreRef.current = false;
+
+    getOrders(token, fetchParamsRef.current).then((result) => {
+      if (result.ok) {
+        const sorted = [...result.data.data].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        const filtered = statusTab === 1 ? sorted.filter((o) => o.paymentStatus !== 'unpaid') : sorted;
+        setAllOrders(filtered);
+        nextCursorRef.current = result.data.nextCursor;
+        hasMoreRef.current = result.data.hasMore;
+      }
+      setLoading(false);
+    });
+  }, [focusTick, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
   async function loadMore() {
     if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMore) return;
@@ -114,7 +108,8 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
       const sorted = [...result.data.data].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
-      setAllOrders((prev) => [...prev, ...sorted]);
+      const filtered = statusTab === 1 ? sorted.filter((o) => o.paymentStatus !== 'unpaid') : sorted;
+      setAllOrders((prev) => [...prev, ...filtered]);
       nextCursorRef.current = result.data.nextCursor;
       hasMoreRef.current = result.data.hasMore;
     }
@@ -132,14 +127,12 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     }
   }
 
-  const orders = allOrders;
-
   const periodLabel = getPeriodLabel(period, offset, customFrom, customTo);
   const canGoForward = period !== 'custom' && offset < 0;
   const canGoBack = period !== 'custom';
 
   return {
-    orders,
+    orders: allOrders,
     loading,
     loadingMore,
     loadMore,

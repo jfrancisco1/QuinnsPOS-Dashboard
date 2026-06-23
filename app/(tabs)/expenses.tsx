@@ -1,11 +1,14 @@
-import { SectionList, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { RefreshControl, SectionList, Text, TouchableOpacity, View } from 'react-native';
 
 import { router } from 'expo-router';
 
+import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ListItem } from '@/components/ui/list-item';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { useAuth } from '@/context/auth-context';
+import { useBranch } from '@/context/branch-context';
 import { useExpenses } from '@/features/expenses/hooks/use-expenses';
 import { type Expense } from '@/lib/api';
 
@@ -24,7 +27,9 @@ function fmtDate(dateStr: string) {
 
 export default function ExpensesScreen() {
   const { token } = useAuth();
-  const { expenses, loading } = useExpenses({ token });
+  const { selectedBranch, loadBranches } = useBranch();
+  const [branchModalVisible, setBranchModalVisible] = useState(false);
+  const { expenses, loading, refreshing, onRefresh } = useExpenses({ token, selectedBranch });
 
   const sections = expenses.reduce<{ title: string; data: Expense[] }[]>(
     (acc, expense) => {
@@ -44,7 +49,7 @@ export default function ExpensesScreen() {
 
   return (
     <View className="flex-1 bg-page dark:bg-page-dark">
-      <ScreenHeader title="Expenses">
+      <ScreenHeader title="Expenses" subtitle={selectedBranch?.name} onBranchPress={() => setBranchModalVisible(true)}>
         {expenses.length > 0 && (
           <Text className="mt-1 text-sm font-semibold text-white/80">
             Total: {fmtPeso(total)}
@@ -93,6 +98,7 @@ export default function ExpensesScreen() {
               <Text className="text-sm text-muted">No expenses yet</Text>
             </View>
           }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
@@ -105,6 +111,13 @@ export default function ExpensesScreen() {
       >
         <IconSymbol name="plus" size={28} color="#fff" />
       </TouchableOpacity>
+
+      <BranchPickerModal
+        visible={branchModalVisible}
+        onClose={() => setBranchModalVisible(false)}
+        token={token}
+        loadBranches={loadBranches}
+      />
     </View>
   );
 }
