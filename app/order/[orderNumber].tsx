@@ -130,7 +130,7 @@ export default function OrderDetailScreen() {
             <View className="mb-3 flex-row items-start justify-between">
               <View className="flex-1 pr-3">
                 <Text className="text-xl font-bold text-zinc-900 dark:text-white" numberOfLines={1}>
-                  {order.customer?.nickname ?? '—'}
+                  {order.customer?.nickname?.toUpperCase() ?? '—'}
                 </Text>
                 <Text className="mt-0.5 text-sm font-medium text-zinc-500 dark:text-zinc-400">
                   {fulfillmentLabel(order.fulfillmentType)}
