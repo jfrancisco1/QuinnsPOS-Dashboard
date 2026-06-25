@@ -21,8 +21,12 @@
       },
       "ios": {
         "buildConfiguration": "Release",
-        "image": "latest"
+        "image": "latest",
+        "autoIncrement": true
       }
     }
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
 }
