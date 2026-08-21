@@ -22,9 +22,9 @@ export function ScreenHeader({ title, subtitle, onBranchPress, children }: Props
             <Text className="text-xs font-semibold text-primary-100" numberOfLines={1}>
               {subtitle}
             </Text>
-          ) : (
+          ) : onBranchPress ? (
             <Text className="text-xs text-primary-200">All Branches</Text>
-          )}
+          ) : null}
         </View>
         <View className="flex-1" />
         {onBranchPress ? (

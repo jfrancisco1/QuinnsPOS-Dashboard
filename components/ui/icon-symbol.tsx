@@ -27,6 +27,9 @@ const MAPPING = {
   'banknote.fill': 'payments',
   'plus': 'add',
   'square.and.arrow.up': 'share',
+  'gearshape.fill': 'settings',
+  'person.circle.fill': 'account-circle',
+  'arrow.triangle.2.circlepath': 'sync',
 } as IconMapping;
 
 /**

@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { BranchProvider } from '@/context/branch-context';
+import { ThemePreferenceProvider } from '@/context/theme-preference-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const AppLightTheme: Theme = {
@@ -113,16 +114,18 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? AppDarkTheme : AppLightTheme}>
-        <AuthProvider>
-          <BranchProvider>
-            <BottomSheetModalProvider>
-              <RootLayoutNav />
-            </BottomSheetModalProvider>
-          </BranchProvider>
-        </AuthProvider>
-        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      </ThemeProvider>
+      <ThemePreferenceProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? AppDarkTheme : AppLightTheme}>
+          <AuthProvider>
+            <BranchProvider>
+              <BottomSheetModalProvider>
+                <RootLayoutNav />
+              </BottomSheetModalProvider>
+            </BranchProvider>
+          </AuthProvider>
+          <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        </ThemeProvider>
+      </ThemePreferenceProvider>
     </GestureHandlerRootView>
   );
 }

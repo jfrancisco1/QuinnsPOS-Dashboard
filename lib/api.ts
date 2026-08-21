@@ -287,6 +287,23 @@ export function logoutRequest(token: string) {
   return authFetch<null>(token, "/logout", { method: "POST" });
 }
 
+export type CurrentUser = {
+  id: number;
+  name: string;
+  username: string;
+  role: string;
+  tenant_id: number;
+  branch_id: number | null;
+  token_expires_at: string;
+};
+
+export async function getMe(token: string): Promise<ApiResult<CurrentUser>> {
+  const result = await authFetch<unknown>(token, "/me");
+  if (!result.ok) return result;
+  const user = extractObject<CurrentUser>(result.data) ?? (result.data as CurrentUser);
+  return { ok: true, data: user };
+}
+
 // ─── Orders ───────────────────────────────────────────────────────────────────
 
 export type OrdersPage = {
