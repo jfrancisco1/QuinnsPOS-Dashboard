@@ -8,15 +8,16 @@ import { type SalesByPaymentType } from "@/lib/api";
 
 type Props = {
   salesByPayment: SalesByPaymentType[];
+  title?: string;
 };
 
-export function PaymentTypesCard({ salesByPayment }: Props) {
+export function PaymentTypesCard({ salesByPayment, title = 'Payment Types' }: Props) {
   const { colorScheme } = useColorScheme();
   const amountColor = colorScheme === 'dark' ? '#B060FF' : '#560591';
   if (salesByPayment.length === 0) return null;
 
   return (
-    <Card title="Payment Types">
+    <Card title={title}>
       {salesByPayment.map((row, i) => {
         const { icon, color } = getPaymentIcon(row.payment_method);
         return (

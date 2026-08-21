@@ -399,7 +399,7 @@ export type SalesByPaymentType = {
 export async function getSalesByPaymentType(
   token: string,
   period: "today" | "this_week" | "this_month" | "this_year" | "custom",
-  opts?: { from?: string; to?: string; branch_id?: number },
+  opts?: { from?: string; to?: string; branch_id?: number; date_basis?: "created" | "paid" },
 ): Promise<ApiResult<SalesByPaymentType[]>> {
   const params = new URLSearchParams();
   if (period === "custom") {
@@ -409,6 +409,7 @@ export async function getSalesByPaymentType(
     params.set("period", period);
   }
   if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  if (opts?.date_basis) params.set("date_basis", opts.date_basis);
   const result = await authFetch<unknown>(
     token,
     `/reports/sales-by-payment-type?${params.toString()}`,

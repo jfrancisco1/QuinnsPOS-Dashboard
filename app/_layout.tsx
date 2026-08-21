@@ -69,6 +69,7 @@ function RootLayoutNav() {
       <Stack.Screen name="splash-preview" options={{ headerShown: false }} />
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="reconciliation" options={{ headerShown: false }} />
       <Stack.Screen
         name="new-item"
         options={{ presentation: 'modal', title: 'New Item' }}

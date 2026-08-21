@@ -5,20 +5,17 @@ import { router } from 'expo-router';
 
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { ScreenHeader } from '@/components/ui/screen-header';
+import { StatCard } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
-import { BreakdownCard } from '@/features/sales/components/breakdown-card';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
-import { SalesByItemsCard } from '@/features/sales/components/sales-by-items-card';
-import { SalesOverviewChart } from '@/features/sales/components/sales-overview-chart';
-import { useSalesData } from '@/features/sales/hooks/use-sales-data';
+import { fmtPeso } from '@/features/sales/utils';
+import { useReconciliationData } from '@/features/reconciliation/hooks/use-reconciliation-data';
 
-export default function SalesScreen() {
+export default function ReconciliationScreen() {
   const { token } = useAuth();
   const { selectedBranch, loadBranches } = useBranch();
-  const [chartContainerWidth, setChartContainerWidth] = useState(0);
   const [branchModalVisible, setBranchModalVisible] = useState(false);
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
 
@@ -29,28 +26,42 @@ export default function SalesScreen() {
   const {
     period,
     setOffset,
-    summary,
-    salesByItem,
-    itemsMap,
     salesByPayment,
-    dailySummaries,
-    granularity,
+    overallTotal,
     loading,
-    totalExpenses,
-    grossProfit,
     periodLabel,
     canGoForward,
     canGoBack,
     handlePeriodSelect,
-  } = useSalesData({ token, selectedBranch });
+  } = useReconciliationData({ token, selectedBranch });
 
   return (
     <ScrollView className="flex-1 bg-page dark:bg-page-dark">
-      <ScreenHeader
-        title="Sales"
-        subtitle={selectedBranch?.name}
-        onBranchPress={() => setBranchModalVisible(true)}
-      >
+      <View className="bg-primary px-5 pb-5 pt-14 dark:bg-primary-700">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.75}
+            hitSlop={8}
+            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
+          >
+            <Text className="text-xl font-bold text-white">‹</Text>
+          </TouchableOpacity>
+          <View className="flex-1 items-center">
+            <Text className="text-xl font-bold text-white">Reconciliation</Text>
+            <Text className="text-xs text-primary-200" numberOfLines={1}>
+              {selectedBranch?.name ?? 'All Branches'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setBranchModalVisible(true)}
+            activeOpacity={0.75}
+            className="h-10 w-10 items-center justify-center rounded-2xl bg-white/20"
+          >
+            <IconSymbol name="storefront.fill" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
         <View className="mt-3 flex-row items-center">
           <TouchableOpacity
             onPress={() => setOffset((o) => o - 1)}
@@ -80,7 +91,7 @@ export default function SalesScreen() {
             <Text className="text-2xl font-bold text-white">›</Text>
           </TouchableOpacity>
         </View>
-      </ScreenHeader>
+      </View>
 
       <BranchPickerModal
         visible={branchModalVisible}
@@ -103,43 +114,14 @@ export default function SalesScreen() {
         </View>
       ) : (
         <View className="gap-4 px-5 pb-10 pt-4">
-          <SalesOverviewChart
-            granularity={granularity}
-            dailySummaries={dailySummaries}
-            containerWidth={chartContainerWidth}
-            onLayout={setChartContainerWidth}
-          />
+          <Text className="text-xs text-muted">
+            Grouped by the date each order was paid, not when it was placed — use this to check
+            how much should be in the register.
+          </Text>
 
-          <BreakdownCard
-            summary={summary}
-            grossProfit={grossProfit}
-            totalExpenses={totalExpenses}
-          />
+          <StatCard label="Total Collected" value={fmtPeso(overallTotal)} color="indigo" />
 
-          <SalesByItemsCard salesByItem={salesByItem} itemsMap={itemsMap} />
-
-          <PaymentTypesCard salesByPayment={salesByPayment} />
-
-          <TouchableOpacity
-            onPress={() => router.push('/reconciliation')}
-            activeOpacity={0.8}
-            className="flex-row items-center justify-between rounded-3xl bg-white px-5 py-4 dark:bg-card-dark"
-            style={{
-              shadowColor: '#1A1F3C',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.07,
-              shadowRadius: 16,
-              elevation: 3,
-            }}
-          >
-            <View>
-              <Text className="text-sm font-bold text-ink dark:text-white">Reconciliation</Text>
-              <Text className="mt-0.5 text-xs text-muted">
-                Cash &amp; payment totals by date paid
-              </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={16} color="#8A8FA8" />
-          </TouchableOpacity>
+          <PaymentTypesCard salesByPayment={salesByPayment} title="Collected By Method" />
         </View>
       )}
     </ScrollView>
