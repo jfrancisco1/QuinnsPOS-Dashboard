@@ -320,6 +320,31 @@ export async function getOrders(
   };
 }
 
+export type UnpaidSummary = { total: number; count: number };
+
+// Report endpoints net out deliveryFee from their "unpaid"/"outstanding" figures (revenue-only),
+// but the amount actually owed by the customer is order.total (subtotal + deliveryFee - discount).
+// This walks every page of unpaid orders for the range and sums order.total client-side so that
+// figure is available consistently anywhere it's needed (Orders view, Dashboard).
+export async function getUnpaidSummary(
+  token: string,
+  params: { from: string; to: string; branch_id?: number },
+): Promise<ApiResult<UnpaidSummary>> {
+  let total = 0;
+  let count = 0;
+  let cursor: string | undefined;
+  do {
+    const result = await getOrders(token, { ...params, payment_status: 'unpaid', cursor });
+    if (!result.ok) return result;
+    for (const order of result.data.data) {
+      total += Number(order.total);
+      count += 1;
+    }
+    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
+  } while (cursor);
+  return { ok: true, data: { total, count } };
+}
+
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
 export type OrderStatus = 'pending' | 'in_progress' | 'ready' | 'completed' | 'cancelled';
 

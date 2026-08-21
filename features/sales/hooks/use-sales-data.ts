@@ -7,6 +7,7 @@ import {
   getSalesByItem,
   getSalesByPaymentType,
   getSalesSummary,
+  getUnpaidSummary,
   type Branch,
   type Item,
   type SalesByItem,
@@ -88,7 +89,8 @@ export function useSalesData({ token, selectedBranch }: Props) {
         getSalesByItem(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
         getSalesByPaymentType(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
         getItems(token),
-      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes]) => {
+        getUnpaidSummary(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes, unpaidRes]) => {
         if (sumRes.ok) {
           setSummary(sumRes.data);
           setGranularity(sumRes.data.group_by);
@@ -100,7 +102,18 @@ export function useSalesData({ token, selectedBranch }: Props) {
           );
         }
         if (itemsRes.ok) setSalesByItem(itemsRes.data);
-        if (paymentRes.ok) setSalesByPayment(paymentRes.data);
+        if (paymentRes.ok) {
+          // The report's "unpaid" row nets out deliveryFee; swap in the order.total-based
+          // sum here so this screen's unpaid figure matches the Orders view exactly.
+          const rows = unpaidRes.ok
+            ? paymentRes.data.map((row) =>
+                row.payment_method.toLowerCase() === 'unpaid'
+                  ? { ...row, payment_amount: unpaidRes.data.total, transactions: unpaidRes.data.count }
+                  : row,
+              )
+            : paymentRes.data;
+          setSalesByPayment(rows);
+        }
         if (allItemsRes.ok) {
           setItemsMap(new Map(allItemsRes.data.map((it) => [it.id, it])));
         }

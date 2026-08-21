@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { getOrders, type Branch, type Order } from '@/lib/api';
+import { getOrders, getUnpaidSummary, type Branch, type Order } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 
@@ -27,6 +27,9 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  const [unpaidTotal, setUnpaidTotal] = useState(0);
+  const [unpaidCount, setUnpaidCount] = useState(0);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
@@ -97,6 +100,34 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     });
   }, [focusTick, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
+  // Walks every unpaid order for the range and sums order.total, so this always agrees
+  // with the Dashboard's figure (both call getUnpaidSummary) regardless of which page
+  // of the (possibly filtered/searched) list is currently loaded on screen.
+  useEffect(() => {
+    if (!token) return;
+
+    let fromStr: string;
+    let toStr: string;
+    if (period === 'custom') {
+      fromStr = customFrom;
+      toStr = customTo;
+    } else {
+      const range = computeDateRange(period, offset);
+      fromStr = range.from;
+      toStr = range.to;
+    }
+
+    getUnpaidSummary(token, {
+      from: fromStr,
+      to: toStr,
+      branch_id: selectedBranch?.id,
+    }).then((result) => {
+      if (!result.ok) return;
+      setUnpaidTotal(result.data.total);
+      setUnpaidCount(result.data.count);
+    });
+  }, [focusTick, token, period, offset, customFrom, customTo, selectedBranch]);
+
   async function loadMore() {
     if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMoreRef.current) return;
 
@@ -154,5 +185,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     handlePeriodSelect,
     searchQuery,
     setSearchQuery,
+    unpaidTotal,
+    unpaidCount,
   };
 }
