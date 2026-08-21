@@ -28,7 +28,6 @@ import {
   statusVariant,
 } from "@/features/orders/utils";
 import { PeriodPickerModal } from "@/features/sales/components/period-picker-modal";
-import { fmtPeso } from "@/features/sales/utils";
 
 export default function OrdersScreen() {
   const { token } = useAuth();
@@ -52,8 +51,6 @@ export default function OrdersScreen() {
     handlePeriodSelect,
     searchQuery,
     setSearchQuery,
-    unpaidTotal,
-    unpaidCount,
   } = useOrders({ token, selectedBranch, loadBranches });
 
   const sections = useMemo(
@@ -179,14 +176,6 @@ export default function OrdersScreen() {
             );
           })}
         </View>
-
-        {unpaidCount > 0 && (
-          <View className="mt-3 flex-row items-center justify-center gap-1.5 rounded-full bg-white/20 py-1.5">
-            <Text className="text-xs font-semibold text-white">
-              Unpaid: {fmtPeso(unpaidTotal)} · {unpaidCount} order{unpaidCount !== 1 ? "s" : ""}
-            </Text>
-          </View>
-        )}
       </ScreenHeader>
 
       <BranchPickerModal
