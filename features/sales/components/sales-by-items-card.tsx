@@ -18,6 +18,7 @@ export function SalesByItemsCard({ salesByItem, itemsMap }: Props) {
 
   return (
     <Card title="Sales by Items">
+      <Text className="-mt-2 mb-2.5 text-xs text-muted">Paid orders only</Text>
       {salesByItem.map((row, i) => {
         const item = itemsMap.get(Number(row.item_id));
         const color = row.color ?? item?.color ?? null;
