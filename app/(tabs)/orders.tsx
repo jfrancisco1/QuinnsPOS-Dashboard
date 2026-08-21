@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Pressable,
   SectionList,
@@ -53,22 +53,67 @@ export default function OrdersScreen() {
     setSearchQuery,
   } = useOrders({ token, selectedBranch, loadBranches });
 
-  const sections = orders.reduce<{ title: string; data: Order[] }[]>(
-    (acc, order) => {
-      const label = new Date(order.createdAt).toLocaleDateString("en-PH", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-      const existing = acc.find((s) => s.title === label);
-      if (existing) {
-        existing.data.push(order);
-      } else {
-        acc.push({ title: label, data: [order] });
-      }
-      return acc;
-    },
+  const sections = useMemo(
+    () =>
+      orders.reduce<{ title: string; data: Order[] }[]>((acc, order) => {
+        const label = new Date(order.createdAt).toLocaleDateString("en-PH", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+        const existing = acc.find((s) => s.title === label);
+        if (existing) {
+          existing.data.push(order);
+        } else {
+          acc.push({ title: label, data: [order] });
+        }
+        return acc;
+      }, []),
+    [orders],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: { title: string } }) => (
+      <View className="border-b border-divide bg-page px-4 py-2 dark:border-divide-dark dark:bg-page-dark">
+        <Text className="text-sm font-bold text-emerald">
+          {section.title}
+        </Text>
+      </View>
+    ),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: Order }) => (
+      <ListItem
+        title={(item.customer?.nickname ?? "Unknown").toUpperCase()}
+        subtitle={`${fulfillmentLabel(item.fulfillmentType)}`}
+        description={item.customer?.address ?? undefined}
+        right={
+          <View className="items-end gap-1">
+            <Text className="text-base font-bold text-zinc-900 dark:text-white">
+              ₱
+              {Number(item.total).toLocaleString("en-PH", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </Text>
+            <View className="flex-row gap-1">
+              <Badge
+                label={statusLabel(item.orderStatus)}
+                variant={statusVariant(item.orderStatus)}
+              />
+              <Badge
+                label={paymentLabel(item.paymentStatus)}
+                variant={paymentVariant(item.paymentStatus)}
+              />
+            </View>
+          </View>
+        }
+        onPress={() => router.push(`/order/${item.orderNumber}`)}
+      />
+    ),
     [],
   );
 
@@ -177,42 +222,8 @@ export default function OrdersScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.orderNumber}
-          renderSectionHeader={({ section }) => (
-            <View className="border-b border-divide bg-page px-4 py-2 dark:border-divide-dark dark:bg-page-dark">
-              <Text className="text-sm font-bold text-emerald">
-                {section.title}
-              </Text>
-            </View>
-          )}
-          renderItem={({ item }) => (
-            <ListItem
-              title={(item.customer?.nickname ?? "Unknown").toUpperCase()}
-              subtitle={`${fulfillmentLabel(item.fulfillmentType)}`}
-              description={item.customer?.address ?? undefined}
-              right={
-                <View className="items-end gap-1">
-                  <Text className="text-base font-bold text-zinc-900 dark:text-white">
-                    ₱
-                    {Number(item.total).toLocaleString("en-PH", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </Text>
-                  <View className="flex-row gap-1">
-                    <Badge
-                      label={statusLabel(item.orderStatus)}
-                      variant={statusVariant(item.orderStatus)}
-                    />
-                    <Badge
-                      label={paymentLabel(item.paymentStatus)}
-                      variant={paymentVariant(item.paymentStatus)}
-                    />
-                  </View>
-                </View>
-              }
-              onPress={() => router.push(`/order/${item.orderNumber}`)}
-            />
-          )}
+          renderSectionHeader={renderSectionHeader}
+          renderItem={renderItem}
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
           ListEmptyComponent={

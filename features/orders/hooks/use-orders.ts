@@ -35,6 +35,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
 
   const nextCursorRef = useRef<string | null>(null);
   const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
   const fetchParamsRef = useRef<{ from: string; to: string; branch_id?: number; search?: string; payment_status?: string }>({
     from: '',
     to: '',
@@ -97,8 +98,9 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   }, [focusTick, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
   async function loadMore() {
-    if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMore) return;
+    if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMoreRef.current) return;
 
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     const result = await getOrders(token, {
       ...fetchParamsRef.current,
@@ -109,10 +111,14 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
       const filtered = statusTab === 1 ? sorted.filter((o) => o.paymentStatus !== 'unpaid') : sorted;
-      setAllOrders((prev) => [...prev, ...filtered]);
+      setAllOrders((prev) => {
+        const seen = new Set(prev.map((o) => o.orderNumber));
+        return [...prev, ...filtered.filter((o) => !seen.has(o.orderNumber))];
+      });
       nextCursorRef.current = result.data.nextCursor;
       hasMoreRef.current = result.data.hasMore;
     }
+    loadingMoreRef.current = false;
     setLoadingMore(false);
   }
 
