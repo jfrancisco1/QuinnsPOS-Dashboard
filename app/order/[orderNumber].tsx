@@ -1,11 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 
 import { Badge } from '@/components/ui/badge';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
+import { OrderReceiptCard } from '@/features/orders/components/order-receipt-card';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
 import { getOrderByNumber, updateOrderPaymentStatus, updateOrderStatus, type Order, type OrderStatus, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
 
@@ -68,6 +72,8 @@ export default function OrderDetailScreen() {
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
   const [toast, setToast] = useState<{ message: string; variant: 'success' | 'error' } | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const receiptRef = useRef<View>(null);
 
   useEffect(() => {
     if (!token || !orderNumber) return;
@@ -105,6 +111,26 @@ export default function OrderDetailScreen() {
     setUpdatingPayment(false);
   }
 
+  async function handleShare() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      // Give the off-screen receipt a couple of frames to fully paint before
+      // snapshotting it — capturing too early can produce corrupted text glyphs.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: 'Share Order' });
+      } else {
+        setToast({ message: 'Sharing is not available on this device', variant: 'error' });
+      }
+    } catch {
+      setToast({ message: 'Failed to share order', variant: 'error' });
+    } finally {
+      setSharing(false);
+    }
+  }
+
   if (loading) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-zinc-950">
@@ -123,6 +149,32 @@ export default function OrderDetailScreen() {
 
   return (
     <View className="flex-1 bg-zinc-50 dark:bg-zinc-950">
+      <Stack.Screen
+        options={{
+          headerRight: ({ tintColor }) => (
+            <View className="h-10 w-10 items-center justify-center">
+              {sharing ? (
+                <ActivityIndicator size="small" color={tintColor ?? '#560591'} />
+              ) : (
+                <TouchableOpacity
+                  onPress={handleShare}
+                  hitSlop={8}
+                  className="h-10 w-10 items-center justify-center"
+                >
+                  <IconSymbol name="square.and.arrow.up" size={22} color={tintColor ?? '#560591'} />
+                </TouchableOpacity>
+              )}
+            </View>
+          ),
+        }}
+      />
+      <View
+        style={{ position: 'absolute', top: 0, left: -2000 }}
+        collapsable={false}
+        pointerEvents="none"
+      >
+        <OrderReceiptCard ref={receiptRef} order={order} />
+      </View>
       <ScrollView className="flex-1">
         <View className="gap-4 p-4">
           {/* Header card */}

@@ -3,6 +3,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { router } from 'expo-router';
 
+import { toISO } from '@/lib/date-helpers';
 import { setPendingDateRange } from '@/lib/date-range-store';
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -28,10 +29,6 @@ function isInRange(d: Date, from: Date | null, to: Date | null) {
 
 function formatShort(d: Date) {
   return `${MONTH_NAMES[d.getMonth()].slice(0, 3)} ${d.getDate()}, ${d.getFullYear()}`;
-}
-
-function toISO(d: Date) {
-  return d.toISOString().slice(0, 10);
 }
 
 export default function DateRangeScreen() {
