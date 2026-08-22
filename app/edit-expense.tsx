@@ -6,6 +6,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { TextInput } from "@/components/ui/text-input";
 import { useAuth } from "@/context/auth-context";
+import { ExpenseCategoryPicker } from "@/features/expenses/components/expense-category-picker";
+import { useExpenseCategories } from "@/features/expenses/hooks/use-expense-categories";
 import { deleteExpense, updateExpense } from "@/lib/api";
 
 function isoToDate(iso: string) {
@@ -27,8 +29,10 @@ export default function EditExpenseScreen() {
     amount: string;
     expense_date: string;
     note: string;
+    expense_category_id: string;
   }>();
 
+  const { categories } = useExpenseCategories({ token });
   const expenseId = params.id ?? "";
   const [description, setDescription] = useState(params.description ?? "");
   const [amount, setAmount] = useState(params.amount ?? "");
@@ -36,6 +40,9 @@ export default function EditExpenseScreen() {
     params.expense_date ? isoToDate(params.expense_date) : new Date(),
   );
   const [note, setNote] = useState(params.note ?? "");
+  const [categoryId, setCategoryId] = useState<number | null>(
+    params.expense_category_id ? Number(params.expense_category_id) : null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +64,7 @@ export default function EditExpenseScreen() {
       amount: parseFloat(amount),
       expense_date: toIso(expenseDate),
       note: note.trim() || null,
+      expense_category_id: categoryId ?? undefined,
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -104,6 +112,11 @@ export default function EditExpenseScreen() {
           label="Date *"
           value={expenseDate}
           onChange={setExpenseDate}
+        />
+        <ExpenseCategoryPicker
+          categories={categories}
+          selectedCategoryId={categoryId}
+          onSelect={setCategoryId}
         />
         <TextInput
           label="Note"

@@ -99,6 +99,15 @@ function RootLayoutNav() {
         name="edit-expense"
         options={{ presentation: 'modal', title: 'Edit Expense' }}
       />
+      <Stack.Screen name="expense-categories" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="new-expense-category"
+        options={{ presentation: 'modal', title: 'New Category' }}
+      />
+      <Stack.Screen
+        name="edit-expense-category"
+        options={{ presentation: 'modal', title: 'Edit Category' }}
+      />
     </Stack>
   );
 }

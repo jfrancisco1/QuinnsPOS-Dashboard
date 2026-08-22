@@ -129,16 +129,28 @@ export type SalesByItem = {
   shape: string | null;
 };
 
+export type ExpenseCategory = {
+  id: number;
+  name: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Expense = {
   id: string;
   description: string;
   amount: number;
   expense_date: string;
   note: string | null;
+  expense_category_id: number | null;
+  category: ExpenseCategory | null;
   user_id: number;
   branch_id: number | null;
   tenant_id: number | null;
   created_at: string;
+  updated_at: string;
 };
 
 // ─── Payload types ────────────────────────────────────────────────────────────
@@ -167,6 +179,13 @@ export type CreateExpensePayload = {
   expense_date: string;
   note: string | null;
   branch_id?: number;
+  expense_category_id?: number;
+};
+
+export type CreateExpenseCategoryPayload = {
+  name: string;
+  is_active?: boolean;
+  sort_order?: number;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -191,6 +210,7 @@ function extractArray<T>(json: unknown): T[] {
       "items",
       "categories",
       "expenses",
+      "expense_categories",
       "branches",
     ]) {
       if (Array.isArray(j[key])) return j[key] as T[];
@@ -225,6 +245,9 @@ async function authFetch<T>(
     try {
       json = await response.json();
     } catch {
+      if (response.ok) {
+        return { ok: true, data: null as T };
+      }
       return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
     }
     if (response.ok) {
@@ -602,4 +625,36 @@ export function updateExpense(token: string, id: string, data: CreateExpensePayl
 
 export function deleteExpense(token: string, id: string) {
   return authFetch<unknown>(token, `/expenses/${id}`, { method: "DELETE" });
+}
+
+// ─── Expense Categories ───────────────────────────────────────────────────────
+
+export async function getExpenseCategories(
+  token: string,
+): Promise<ApiResult<ExpenseCategory[]>> {
+  const result = await authFetch<unknown>(token, "/expense-categories");
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<ExpenseCategory>(result.data) };
+}
+
+export function createExpenseCategory(token: string, data: CreateExpenseCategoryPayload) {
+  return authFetch<ExpenseCategory>(token, "/expense-categories", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export function updateExpenseCategory(
+  token: string,
+  id: number,
+  data: Partial<CreateExpenseCategoryPayload>,
+) {
+  return authFetch<ExpenseCategory>(token, `/expense-categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteExpenseCategory(token: string, id: number) {
+  return authFetch<null>(token, `/expense-categories/${id}`, { method: "DELETE" });
 }

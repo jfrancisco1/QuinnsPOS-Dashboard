@@ -7,6 +7,8 @@ import { DatePickerInput } from '@/components/ui/date-picker-input';
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
+import { ExpenseCategoryPicker } from '@/features/expenses/components/expense-category-picker';
+import { useExpenseCategories } from '@/features/expenses/hooks/use-expense-categories';
 import { createExpense } from '@/lib/api';
 
 function toIso(date: Date) {
@@ -18,12 +20,16 @@ function toIso(date: Date) {
 export default function NewExpenseScreen() {
   const { token } = useAuth();
   const { selectedBranch } = useBranch();
+  const { categories } = useExpenseCategories({ token });
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date());
   const [note, setNote] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const activeCategoryId = categoryId ?? categories.find((c) => c.is_active)?.id ?? null;
 
   async function handleSubmit() {
     if (!description.trim()) { setError('Description is required.'); return; }
@@ -40,6 +46,7 @@ export default function NewExpenseScreen() {
       expense_date: toIso(expenseDate),
       note: note.trim() || null,
       branch_id: selectedBranch?.id,
+      expense_category_id: activeCategoryId ?? undefined,
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -71,6 +78,11 @@ export default function NewExpenseScreen() {
           label="Date *"
           value={expenseDate}
           onChange={setExpenseDate}
+        />
+        <ExpenseCategoryPicker
+          categories={categories}
+          selectedCategoryId={activeCategoryId}
+          onSelect={setCategoryId}
         />
         <TextInput
           label="Note"
