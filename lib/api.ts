@@ -79,6 +79,10 @@ export type Branch = {
   id: number;
   name: string;
   is_active: boolean;
+  // Optional (not just nullable): the nested `branch` object inside an Order
+  // response may be a trimmed projection that omits these entirely.
+  address?: string | null;
+  phone?: string | null;
 };
 
 export type Order = {
@@ -593,6 +597,34 @@ export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
   const result = await authFetch<unknown>(token, "/branches");
   if (!result.ok) return result;
   return { ok: true, data: extractArray<Branch>(result.data) };
+}
+
+// ─── Tenant Settings ────────────────────────────────────────────────────────
+// NOTE: This endpoint does not exist in the backend yet — the path below is a
+// guess (confirm/correct once tenant settings ships). Callers should treat a
+// failed fetch as "not yet available," not as an error to surface.
+
+export type TenantSettings = {
+  businessName: string | null;
+  branchAddressOverride: string | null;
+  contactNumber: string | null;
+  email: string | null;
+  socialHandle: string | null;
+  claimPolicyText: string | null;
+  disclaimerText: string | null;
+  thankYouText: string | null;
+  gcashNumber: string | null;
+  gcashName: string | null;
+};
+
+export async function getTenantSettings(token: string): Promise<ApiResult<TenantSettings>> {
+  const result = await authFetch<unknown>(token, "/settings/tenant");
+  if (!result.ok) return result;
+  const settings = extractObject<TenantSettings>(result.data);
+  if (!settings) {
+    return { ok: false, error: { message: "Unexpected response shape", status: 0 } };
+  }
+  return { ok: true, data: settings };
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────

@@ -1,13 +1,16 @@
 import { forwardRef } from 'react';
 import { Image, Text, View } from 'react-native';
 
+import QRCode from 'react-native-qrcode-svg';
+
 import { type BadgeVariant } from '@/components/ui/badge';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
 import { fmtPeso } from '@/features/sales/utils';
-import { type Order } from '@/lib/api';
+import { type Order, type TenantSettings } from '@/lib/api';
 
 type Props = {
   order: Order;
+  tenantSettings: TenantSettings | null;
 };
 
 // Deliberately light-only (no dark: classes) — this is a rendered "photo of a
@@ -44,8 +47,21 @@ function TotalRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCard({ order }, ref) {
+export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCard({ order, tenantSettings }, ref) {
   const items = order.items ?? [];
+
+  const branchAddress = order.branch?.address ?? tenantSettings?.branchAddressOverride ?? null;
+  const contactNumber = tenantSettings?.contactNumber ?? order.branch?.phone ?? null;
+  const emailSocial = [tenantSettings?.email, tenantSettings?.socialHandle].filter(Boolean).join(' · ');
+
+  const isDelivery = order.fulfillmentType?.toLowerCase() === 'delivery';
+  const isPaid = order.paymentStatus?.toLowerCase().startsWith('paid_');
+  const isUnpaid = order.paymentStatus?.toLowerCase() === 'unpaid';
+  const showGcashQr = isUnpaid && !!tenantSettings?.gcashNumber;
+
+  const footerLines = [tenantSettings?.claimPolicyText, tenantSettings?.disclaimerText, tenantSettings?.thankYouText].filter(
+    (line): line is string => !!line,
+  );
 
   return (
     <View ref={ref} collapsable={false} className="w-[624px] bg-zinc-100 p-8">
@@ -66,6 +82,14 @@ export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCar
               hour: 'numeric', minute: '2-digit',
             })}
           </Text>
+          {!!tenantSettings?.businessName && (
+            <Text className="mt-3 text-sm font-semibold text-zinc-700">{tenantSettings.businessName}</Text>
+          )}
+          {!!branchAddress && (
+            <Text className="mt-1 text-center text-xs text-zinc-500">{branchAddress}</Text>
+          )}
+          {!!contactNumber && <Text className="mt-1 text-xs text-zinc-500">{contactNumber}</Text>}
+          {!!emailSocial && <Text className="mt-1 text-xs text-zinc-500">{emailSocial}</Text>}
         </View>
 
         {/* Body */}
@@ -81,6 +105,12 @@ export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCar
               <Chip label={paymentLabel(order.paymentStatus)} variant={paymentVariant(order.paymentStatus)} />
               <Chip label={statusLabel(order.orderStatus)} variant={statusVariant(order.orderStatus)} />
             </View>
+            {!!order.customer?.mobile && (
+              <Text className="mt-3 text-sm text-zinc-600">Contact: {order.customer.mobile}</Text>
+            )}
+            {isDelivery && !!order.customer?.address && (
+              <Text className="mt-1 text-sm text-zinc-600">Deliver to: {order.customer.address}</Text>
+            )}
           </View>
 
           {/* Items */}
@@ -110,7 +140,50 @@ export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCar
               <Text className="text-base font-bold text-zinc-900">Total</Text>
               <Text className="text-xl font-bold text-primary">{fmtAmount(order.total)}</Text>
             </View>
+
+            {/* Payment */}
+            <View className="mt-4 border-t border-zinc-100 pt-4">
+              {isPaid && (
+                <>
+                  <TotalRow label="Payment Method" value={paymentLabel(order.paymentStatus)} />
+                  <TotalRow label="Amount Paid" value={fmtAmount(order.total)} />
+                </>
+              )}
+              {isUnpaid && (
+                <View className="flex-row justify-between py-1.5">
+                  <Text className="text-sm font-bold text-red-600">Balance Due</Text>
+                  <Text className="text-base font-bold text-red-600">{fmtAmount(order.total)}</Text>
+                </View>
+              )}
+            </View>
           </View>
+
+          {/* GCash QR */}
+          {showGcashQr && (
+            <View className="mt-6 items-center border-t border-zinc-100 pt-6">
+              <Text className="text-sm font-semibold text-zinc-700">Pay via GCash</Text>
+              <View className="mt-3">
+                <QRCode value={`GCash: ${tenantSettings!.gcashName} — ${tenantSettings!.gcashNumber}`} size={120} />
+              </View>
+              {!!tenantSettings?.gcashName && (
+                <Text className="mt-3 text-sm text-zinc-700">{tenantSettings.gcashName}</Text>
+              )}
+              {!!tenantSettings?.gcashNumber && (
+                <Text className="text-sm text-zinc-500">{tenantSettings.gcashNumber}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Footer */}
+          {footerLines.length > 0 && (
+            <View className="mt-6 items-center border-t border-zinc-100 pt-4">
+              {footerLines.map((line, i) => (
+                <Text key={i} className="mt-1 text-center text-xs text-zinc-400">
+                  {line}
+                </Text>
+              ))}
+            </View>
+          )}
         </View>
       </View>
     </View>
