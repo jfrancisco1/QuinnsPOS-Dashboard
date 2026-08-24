@@ -599,32 +599,46 @@ export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
   return { ok: true, data: extractArray<Branch>(result.data) };
 }
 
-// ─── Tenant Settings ────────────────────────────────────────────────────────
-// NOTE: This endpoint does not exist in the backend yet — the path below is a
-// guess (confirm/correct once tenant settings ships). Callers should treat a
-// failed fetch as "not yet available," not as an error to surface.
+// ─── Store ──────────────────────────────────────────────────────────────────
+// GET is available to any authenticated user; PATCH is admin-only.
 
-export type TenantSettings = {
-  businessName: string | null;
-  branchAddressOverride: string | null;
-  contactNumber: string | null;
+export type Store = {
+  id: number;
+  name: string | null;
+  slug: string;
   email: string | null;
-  socialHandle: string | null;
-  claimPolicyText: string | null;
-  disclaimerText: string | null;
-  thankYouText: string | null;
-  gcashNumber: string | null;
-  gcashName: string | null;
+  phone: string | null;
+  address: string | null;
+  gcash_number: string | null;
+  plan: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
-export async function getTenantSettings(token: string): Promise<ApiResult<TenantSettings>> {
-  const result = await authFetch<unknown>(token, "/settings/tenant");
+export type UpdateStorePayload = Partial<{
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  gcash_number: string;
+}>;
+
+export async function getStore(token: string): Promise<ApiResult<Store>> {
+  const result = await authFetch<unknown>(token, "/store");
   if (!result.ok) return result;
-  const settings = extractObject<TenantSettings>(result.data);
-  if (!settings) {
+  const store = extractObject<Store>(result.data);
+  if (!store) {
     return { ok: false, error: { message: "Unexpected response shape", status: 0 } };
   }
-  return { ok: true, data: settings };
+  return { ok: true, data: store };
+}
+
+export function updateStore(token: string, data: UpdateStorePayload) {
+  return authFetch<Store>(token, "/store", {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
 }
 
 // ─── Expenses ─────────────────────────────────────────────────────────────────

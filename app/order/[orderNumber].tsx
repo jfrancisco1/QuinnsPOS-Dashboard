@@ -11,7 +11,7 @@ import { Toast } from '@/components/ui/toast';
 import { useAuth } from '@/context/auth-context';
 import { OrderReceiptCard } from '@/features/orders/components/order-receipt-card';
 import { fulfillmentLabel, paymentLabel, paymentVariant, statusLabel, statusVariant } from '@/features/orders/utils';
-import { useTenantSettings } from '@/features/settings/hooks/use-tenant-settings';
+import { useStore } from '@/features/settings/hooks/use-store';
 import { getOrderByNumber, updateOrderPaymentStatus, updateOrderStatus, type Order, type OrderStatus, type OrderStatusHistoryEntry, type PaymentHistoryEntry, type PaymentStatus } from '@/lib/api';
 
 function HistoryCard({
@@ -65,7 +65,7 @@ function HistoryCard({
 
 export default function OrderDetailScreen() {
   const { token } = useAuth();
-  const { settings: tenantSettings } = useTenantSettings({ token });
+  const { store } = useStore({ token });
   const { orderNumber } = useLocalSearchParams<{ orderNumber: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -175,7 +175,7 @@ export default function OrderDetailScreen() {
         collapsable={false}
         pointerEvents="none"
       >
-        <OrderReceiptCard ref={receiptRef} order={order} tenantSettings={tenantSettings} />
+        <OrderReceiptCard ref={receiptRef} order={order} store={store} />
       </View>
       <ScrollView className="flex-1">
         <View className="gap-4 p-4">
