@@ -2,9 +2,54 @@ import { useCallback, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { getSalesByPaymentType, type Branch, type SalesByPaymentType } from '@/lib/api';
-import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
+import { getOrders, getSalesByPaymentType, type Branch, type Order, type SalesByPaymentType } from '@/lib/api';
+import { computeDateRange, getPeriodLabel, parseLocalISO, toISO, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+
+// The /orders endpoint has no paid-date filter (from/to only match createdAt), so to list orders
+// paid within the selected period we widen the createdAt window and filter client-side using each
+// order's paymentHistory. This misses orders that took longer than this to go from created to paid.
+const PAID_LOOKBACK_DAYS = 30;
+
+function subtractDays(iso: string, days: number): string {
+  const d = parseLocalISO(iso);
+  d.setDate(d.getDate() - days);
+  return toISO(d);
+}
+
+// Matches the backend's date_basis=paid grouping, which buckets by Asia/Manila calendar day.
+function manilaDateOf(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+}
+
+function paidDateOf(order: Order): string | null {
+  const paidTransitions = (order.paymentHistory ?? []).filter((h) => h.toStatus?.startsWith('paid'));
+  if (paidTransitions.length === 0) return null;
+  const latest = paidTransitions.reduce((a, b) => (new Date(a.changedAt) > new Date(b.changedAt) ? a : b));
+  return manilaDateOf(latest.changedAt);
+}
+
+async function fetchPaidOrdersInRange(
+  token: string,
+  { from, to, branch_id }: { from: string; to: string; branch_id?: number },
+): Promise<Order[]> {
+  const paddedFrom = subtractDays(from, PAID_LOOKBACK_DAYS);
+  const all: Order[] = [];
+  let cursor: string | undefined;
+  do {
+    const result = await getOrders(token, { from: paddedFrom, to, branch_id, cursor });
+    if (!result.ok) break;
+    all.push(...result.data.data);
+    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
+  } while (cursor);
+
+  return all
+    .filter((o) => o.paymentStatus !== 'unpaid')
+    .map((o) => ({ order: o, paidDate: paidDateOf(o) }))
+    .filter((x): x is { order: Order; paidDate: string } => x.paidDate != null && x.paidDate >= from && x.paidDate <= to)
+    .sort((a, b) => b.paidDate.localeCompare(a.paidDate))
+    .map((x) => x.order);
+}
 
 type Props = {
   token: string | null;
@@ -17,6 +62,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
+  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
@@ -53,13 +99,17 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
         toStr = range.to;
       }
 
-      getSalesByPaymentType(token, 'custom', {
-        from: fromStr,
-        to: toStr,
-        branch_id: selectedBranch?.id,
-        date_basis: 'paid',
-      }).then((result) => {
-        if (result.ok) setSalesByPayment(result.data);
+      Promise.all([
+        getSalesByPaymentType(token, 'custom', {
+          from: fromStr,
+          to: toStr,
+          branch_id: selectedBranch?.id,
+          date_basis: 'paid',
+        }),
+        fetchPaidOrdersInRange(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+      ]).then(([salesResult, orders]) => {
+        if (salesResult.ok) setSalesByPayment(salesResult.data);
+        setPaidOrders(orders);
         setLoading(false);
       });
     }, [token, period, offset, customFrom, customTo, selectedBranch]),
@@ -86,6 +136,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
     offset,
     setOffset,
     salesByPayment,
+    paidOrders,
     overallTotal,
     loading,
     periodLabel,

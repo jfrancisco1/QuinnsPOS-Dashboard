@@ -3,15 +3,18 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { router } from 'expo-router';
 
+import { Badge } from '@/components/ui/badge';
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ListItem } from '@/components/ui/list-item';
 import { StatCard } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
+import { fulfillmentLabel, paymentLabel, paymentVariant } from '@/features/orders/utils';
+import { useReconciliationData } from '@/features/reconciliation/hooks/use-reconciliation-data';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
 import { fmtPeso } from '@/features/sales/utils';
-import { useReconciliationData } from '@/features/reconciliation/hooks/use-reconciliation-data';
 
 export default function ReconciliationScreen() {
   const { token } = useAuth();
@@ -27,6 +30,7 @@ export default function ReconciliationScreen() {
     period,
     setOffset,
     salesByPayment,
+    paidOrders,
     overallTotal,
     loading,
     periodLabel,
@@ -122,6 +126,37 @@ export default function ReconciliationScreen() {
           <StatCard label="Total Collected" value={fmtPeso(overallTotal)} color="indigo" />
 
           <PaymentTypesCard salesByPayment={salesByPayment} title="Collected By Method" />
+
+          <View className="overflow-hidden rounded-xl bg-white dark:bg-zinc-900">
+            <Text className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:text-white">
+              Paid Orders ({paidOrders.length})
+            </Text>
+            {paidOrders.length === 0 ? (
+              <Text className="px-4 py-6 text-center text-sm text-muted">
+                No paid orders in this period
+              </Text>
+            ) : (
+              paidOrders.map((order) => (
+                <ListItem
+                  key={order.orderNumber}
+                  title={(order.customer?.nickname ?? 'Unknown').toUpperCase()}
+                  subtitle={fulfillmentLabel(order.fulfillmentType)}
+                  right={
+                    <View className="items-end gap-1">
+                      <Text className="text-base font-bold text-zinc-900 dark:text-white">
+                        {fmtPeso(Number(order.total))}
+                      </Text>
+                      <Badge
+                        label={paymentLabel(order.paymentStatus)}
+                        variant={paymentVariant(order.paymentStatus)}
+                      />
+                    </View>
+                  }
+                  onPress={() => router.push(`/order/${order.orderNumber}`)}
+                />
+              ))
+            )}
+          </View>
         </View>
       )}
     </ScrollView>
