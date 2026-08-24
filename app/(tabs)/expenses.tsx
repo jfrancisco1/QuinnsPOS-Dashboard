@@ -126,7 +126,7 @@ export default function ExpensesScreen() {
         }}
       />
 
-      {loading ? (
+      {loading && expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-sm text-muted">Loading...</Text>
         </View>

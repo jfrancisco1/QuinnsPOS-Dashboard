@@ -214,7 +214,7 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      {loading ? (
+      {loading && orders.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-sm text-muted">Loading...</Text>
         </View>

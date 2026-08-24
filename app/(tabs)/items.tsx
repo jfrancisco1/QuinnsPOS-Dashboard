@@ -90,7 +90,7 @@ export default function CatalogScreen() {
         onClose={() => setBranchModalVisible(false)}
       />
 
-      {loading ? (
+      {loading && items.length === 0 && categories.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <Text className="text-sm text-muted">Loading...</Text>
         </View>
