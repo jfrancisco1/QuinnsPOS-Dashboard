@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { CategorySelector } from '@/features/catalog/components/category-selector';
 import { ColorPicker } from '@/features/catalog/components/color-picker';
 import { ShapePicker } from '@/features/catalog/components/shape-picker';
@@ -13,6 +14,7 @@ import { type ItemShape } from '@/lib/item-options';
 
 export default function NewItemScreen() {
   const { token } = useAuth();
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [cost, setCost] = useState('');
@@ -54,6 +56,7 @@ export default function NewItemScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Item created');
       router.back();
     } else {
       setError(result.error.message);

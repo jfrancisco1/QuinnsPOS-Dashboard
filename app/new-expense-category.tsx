@@ -5,10 +5,12 @@ import { router } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { createExpenseCategory } from '@/lib/api';
 
 export default function NewExpenseCategoryScreen() {
   const { token } = useAuth();
+  const { showToast } = useToast();
   const [name, setName] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState('0');
@@ -29,6 +31,7 @@ export default function NewExpenseCategoryScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Category created');
       router.back();
     } else {
       setError(result.error.message);

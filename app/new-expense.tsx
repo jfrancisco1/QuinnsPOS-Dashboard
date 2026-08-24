@@ -7,6 +7,7 @@ import { DatePickerInput } from '@/components/ui/date-picker-input';
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
+import { useToast } from '@/context/toast-context';
 import { ExpenseCategoryPicker } from '@/features/expenses/components/expense-category-picker';
 import { useExpenseCategories } from '@/features/expenses/hooks/use-expense-categories';
 import { createExpense } from '@/lib/api';
@@ -21,6 +22,7 @@ export default function NewExpenseScreen() {
   const { token } = useAuth();
   const { selectedBranch } = useBranch();
   const { categories } = useExpenseCategories({ token });
+  const { showToast } = useToast();
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [expenseDate, setExpenseDate] = useState(new Date());
@@ -50,6 +52,7 @@ export default function NewExpenseScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Expense created');
       router.back();
     } else {
       setError(result.error.message);

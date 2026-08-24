@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { deleteExpenseCategory, updateExpenseCategory } from '@/lib/api';
 
 export default function EditExpenseCategoryScreen() {
@@ -16,6 +17,7 @@ export default function EditExpenseCategoryScreen() {
     sort_order: string;
   }>();
   const categoryId = Number(params.id);
+  const { showToast } = useToast();
 
   const [name, setName] = useState(params.name ?? '');
   const [isActive, setIsActive] = useState(params.is_active !== '0');
@@ -36,6 +38,7 @@ export default function EditExpenseCategoryScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Changes saved');
       router.back();
     } else {
       setError(result.error.message);
@@ -53,6 +56,7 @@ export default function EditExpenseCategoryScreen() {
           const result = await deleteExpenseCategory(token!, categoryId);
           setIsDeleting(false);
           if (result.ok) {
+            showToast('Category deleted');
             router.back();
           } else {
             setError(result.error.message);

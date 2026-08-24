@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { BranchProvider } from '@/context/branch-context';
 import { ThemePreferenceProvider } from '@/context/theme-preference-context';
+import { ToastProvider } from '@/context/toast-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 const AppLightTheme: Theme = {
@@ -128,7 +129,9 @@ export default function RootLayout() {
           <AuthProvider>
             <BranchProvider>
               <BottomSheetModalProvider>
-                <RootLayoutNav />
+                <ToastProvider>
+                  <RootLayoutNav />
+                </ToastProvider>
               </BottomSheetModalProvider>
             </BranchProvider>
           </AuthProvider>

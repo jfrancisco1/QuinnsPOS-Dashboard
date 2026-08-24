@@ -6,6 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { DatePickerInput } from "@/components/ui/date-picker-input";
 import { TextInput } from "@/components/ui/text-input";
 import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/context/toast-context";
 import { ExpenseCategoryPicker } from "@/features/expenses/components/expense-category-picker";
 import { useExpenseCategories } from "@/features/expenses/hooks/use-expense-categories";
 import { deleteExpense, updateExpense } from "@/lib/api";
@@ -33,6 +34,7 @@ export default function EditExpenseScreen() {
   }>();
 
   const { categories } = useExpenseCategories({ token });
+  const { showToast } = useToast();
   const expenseId = params.id ?? "";
   const [description, setDescription] = useState(params.description ?? "");
   const [amount, setAmount] = useState(params.amount ?? "");
@@ -68,6 +70,7 @@ export default function EditExpenseScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast("Changes saved");
       router.back();
     } else {
       setError(`[${result.error.status}] ${result.error.message}`);
@@ -82,9 +85,14 @@ export default function EditExpenseScreen() {
         style: "destructive",
         onPress: async () => {
           setIsDeleting(true);
-          await deleteExpense(token!, expenseId);
+          const result = await deleteExpense(token!, expenseId);
           setIsDeleting(false);
-          router.back();
+          if (result.ok) {
+            showToast("Expense deleted");
+            router.back();
+          } else {
+            setError(result.error.message);
+          }
         },
       },
     ]);

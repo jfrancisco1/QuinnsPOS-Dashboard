@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { deleteCategory, updateCategory } from '@/lib/api';
 
 export default function EditCategoryScreen() {
@@ -16,6 +17,7 @@ export default function EditCategoryScreen() {
     sort_order: string;
   }>();
   const categoryId = Number(params.id);
+  const { showToast } = useToast();
 
   const [name, setName] = useState(params.name ?? '');
   const [isActive, setIsActive] = useState(params.is_active !== '0');
@@ -36,6 +38,7 @@ export default function EditCategoryScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Changes saved');
       router.back();
     } else {
       setError(result.error.message);
@@ -50,9 +53,14 @@ export default function EditCategoryScreen() {
         style: 'destructive',
         onPress: async () => {
           setIsDeleting(true);
-          await deleteCategory(token!, categoryId);
+          const result = await deleteCategory(token!, categoryId);
           setIsDeleting(false);
-          router.back();
+          if (result.ok) {
+            showToast('Category deleted');
+            router.back();
+          } else {
+            setError(result.error.message);
+          }
         },
       },
     ]);

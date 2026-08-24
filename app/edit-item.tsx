@@ -5,6 +5,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/context/toast-context';
 import { CategorySelector } from '@/features/catalog/components/category-selector';
 import { ColorPicker } from '@/features/catalog/components/color-picker';
 import { ShapePicker } from '@/features/catalog/components/shape-picker';
@@ -26,6 +27,7 @@ export default function EditItemScreen() {
     sort_order: string;
   }>();
   const itemId = Number(params.id);
+  const { showToast } = useToast();
 
   const [name, setName] = useState(params.name ?? '');
   const [price, setPrice] = useState(params.price ?? '');
@@ -71,6 +73,7 @@ export default function EditItemScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      showToast('Changes saved');
       router.back();
     } else {
       setError(result.error.message);
@@ -85,9 +88,14 @@ export default function EditItemScreen() {
         style: 'destructive',
         onPress: async () => {
           setIsDeleting(true);
-          await deleteItem(token!, itemId);
+          const result = await deleteItem(token!, itemId);
           setIsDeleting(false);
-          router.back();
+          if (result.ok) {
+            showToast('Item deleted');
+            router.back();
+          } else {
+            setError(result.error.message);
+          }
         },
       },
     ]);
