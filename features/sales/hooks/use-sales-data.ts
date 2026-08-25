@@ -4,16 +4,19 @@ import { router, useFocusEffect } from 'expo-router';
 
 import {
   getItems,
+  getLoadsSummary,
   getSalesByItem,
   getSalesByPaymentType,
   getSalesSummary,
   getUnpaidSummary,
   type Branch,
   type Item,
+  type LoadsBreakdownRow,
   type SalesByItem,
   type SalesByPaymentType,
   type SalesSummary,
 } from '@/lib/api';
+import { isAddOnCategory } from '@/features/sales/utils';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 
@@ -46,6 +49,9 @@ export function useSalesData({ token, selectedBranch }: Props) {
   const [salesByItem, setSalesByItem] = useState<SalesByItem[]>([]);
   const [itemsMap, setItemsMap] = useState<Map<number, Item>>(new Map());
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
+  const [totalLoads, setTotalLoads] = useState(0);
+  const [loadsOrderCount, setLoadsOrderCount] = useState(0);
+  const [loadsBreakdown, setLoadsBreakdown] = useState<LoadsBreakdownRow[]>([]);
   const [dailySummaries, setDailySummaries] = useState<{ date: string; netSales: number }[]>([]);
   const [granularity, setGranularity] = useState<SalesSummary['group_by']>('hour');
   const [loading, setLoading] = useState(true);
@@ -90,7 +96,8 @@ export function useSalesData({ token, selectedBranch }: Props) {
         getSalesByPaymentType(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
         getItems(token),
         getUnpaidSummary(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
-      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes, unpaidRes]) => {
+        getLoadsSummary(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes, unpaidRes, loadsRes]) => {
         if (sumRes.ok) {
           setSummary(sumRes.data);
           setGranularity(sumRes.data.group_by);
@@ -114,8 +121,19 @@ export function useSalesData({ token, selectedBranch }: Props) {
             : paymentRes.data;
           setSalesByPayment(rows);
         }
-        if (allItemsRes.ok) {
-          setItemsMap(new Map(allItemsRes.data.map((it) => [it.id, it])));
+        const itemsById = allItemsRes.ok
+          ? new Map(allItemsRes.data.map((it) => [it.id, it]))
+          : new Map<number, Item>();
+        if (allItemsRes.ok) setItemsMap(itemsById);
+        if (loadsRes.ok) {
+          // Add-ons (e.g. fabric conditioner, extra rinse) aren't wash loads —
+          // exclude them from the Loads count and its breakdown.
+          const breakdown = loadsRes.data.breakdown.filter(
+            (row) => !isAddOnCategory(itemsById.get(Number(row.itemId))?.category?.name),
+          );
+          setTotalLoads(breakdown.reduce((sum, row) => sum + row.qty, 0));
+          setLoadsOrderCount(loadsRes.data.orderCount);
+          setLoadsBreakdown(breakdown);
         }
         setLoading(false);
       });
@@ -150,6 +168,9 @@ export function useSalesData({ token, selectedBranch }: Props) {
     salesByItem,
     itemsMap,
     salesByPayment,
+    totalLoads,
+    loadsOrderCount,
+    loadsBreakdown,
     dailySummaries,
     granularity,
     loading,

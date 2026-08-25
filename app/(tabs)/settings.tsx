@@ -5,13 +5,14 @@ import { useAuth } from "@/context/auth-context";
 import { useThemePreference } from "@/context/theme-preference-context";
 import { AccountCard } from "@/features/settings/components/account-card";
 import { AppearanceCard } from "@/features/settings/components/appearance-card";
+import { LogoutButton } from "@/features/settings/components/logout-button";
 import { StoreCard } from "@/features/settings/components/store-card";
 import { useCurrentUser } from "@/features/settings/hooks/use-current-user";
 import { useOrderSync } from "@/features/settings/hooks/use-order-sync";
 import { useStore } from "@/features/settings/hooks/use-store";
 
 export default function SettingsScreen() {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const { user, loading: userLoading } = useCurrentUser({ token });
   const { preference, setThemePreference } = useThemePreference();
   const { status, lastSyncedAt, errorMessage, sync } = useOrderSync({ token });
@@ -38,6 +39,7 @@ export default function SettingsScreen() {
           errorMessage={errorMessage}
           onSync={sync}
         /> */}
+        <LogoutButton onPress={logout} />
       </View>
     </ScrollView>
   );

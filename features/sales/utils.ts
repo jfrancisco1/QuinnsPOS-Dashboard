@@ -18,3 +18,8 @@ export function fmtPeso(n: number | undefined | null): string {
   const withCommas = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `₱${withCommas}.${decimal}`;
 }
+
+export function isAddOnCategory(categoryName: string | undefined | null): boolean {
+  // Matches "Ad Ons", "Add-ons", "Addons", "Add Ons", etc.
+  return /ad{1,2}[\s-]?ons?\b/i.test(categoryName ?? "");
+}

@@ -389,6 +389,45 @@ export async function getUnpaidSummary(
   return { ok: true, data: { total, count } };
 }
 
+export type LoadsBreakdownRow = { itemId: string; label: string; qty: number };
+export type LoadsSummary = {
+  totalLoads: number;
+  orderCount: number;
+  breakdown: LoadsBreakdownRow[];
+};
+
+// Loads = sum of order item quantities across ALL orders in the range, regardless
+// of payment status (unlike the sales reports, which only cover paid orders).
+export async function getLoadsSummary(
+  token: string,
+  params: { from: string; to: string; branch_id?: number },
+): Promise<ApiResult<LoadsSummary>> {
+  let totalLoads = 0;
+  let orderCount = 0;
+  const byItem = new Map<string, LoadsBreakdownRow>();
+  let cursor: string | undefined;
+  do {
+    const result = await getOrders(token, { ...params, cursor });
+    if (!result.ok) return result;
+    for (const order of result.data.data) {
+      orderCount += 1;
+      for (const item of order.items) {
+        const qty = Number(item.qty);
+        totalLoads += qty;
+        const existing = byItem.get(item.itemId);
+        if (existing) {
+          existing.qty += qty;
+        } else {
+          byItem.set(item.itemId, { itemId: item.itemId, label: item.label, qty });
+        }
+      }
+    }
+    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
+  } while (cursor);
+  const breakdown = Array.from(byItem.values()).sort((a, b) => b.qty - a.qty);
+  return { ok: true, data: { totalLoads, orderCount, breakdown } };
+}
+
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
 export type OrderStatus = 'pending' | 'in_progress' | 'ready' | 'completed' | 'cancelled';
 
