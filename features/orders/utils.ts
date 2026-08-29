@@ -2,9 +2,10 @@ import { type BadgeVariant } from '@/components/ui/badge';
 
 export function paymentVariant(status: string): BadgeVariant {
   switch (status?.toLowerCase()) {
+    case 'paid_gcash':
+      return 'info';
     case 'paid':
     case 'paid_cash':
-    case 'paid_gcash':
     case 'paid_bank':
     case 'paid_others':
       return 'success';

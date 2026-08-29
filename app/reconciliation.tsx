@@ -16,11 +16,29 @@ import { PaymentTypesCard } from '@/features/sales/components/payment-types-card
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
 import { fmtPeso } from '@/features/sales/utils';
 
+const PAGE_SIZE = 25;
+
+function fmtPaidAt(iso: string): string {
+  const date = new Date(iso);
+  const day = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'Asia/Manila',
+  });
+  const time = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'Asia/Manila',
+  });
+  return `Paid ${day}, ${time}`;
+}
+
 export default function ReconciliationScreen() {
   const { token } = useAuth();
   const { selectedBranch, loadBranches } = useBranch();
   const [branchModalVisible, setBranchModalVisible] = useState(false);
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     if (token) loadBranches(token);
@@ -33,11 +51,22 @@ export default function ReconciliationScreen() {
     paidOrders,
     overallTotal,
     loading,
+    error,
+    ordersLoading,
+    ordersError,
+    retry,
     periodLabel,
     canGoForward,
     canGoBack,
     handlePeriodSelect,
   } = useReconciliationData({ token, selectedBranch });
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [paidOrders]);
+
+  const visibleOrders = paidOrders.slice(0, visibleCount);
+  const hasMoreToShow = visibleCount < paidOrders.length;
 
   return (
     <ScrollView className="flex-1 bg-page dark:bg-page-dark">
@@ -116,6 +145,18 @@ export default function ReconciliationScreen() {
         <View className="items-center py-20">
           <Text className="text-sm text-muted">Loading...</Text>
         </View>
+      ) : error ? (
+        <View className="items-center gap-3 px-8 py-20">
+          <Text className="text-center text-sm text-muted">Couldn&apos;t load reconciliation data</Text>
+          <Text className="text-center text-xs text-muted">{error}</Text>
+          <TouchableOpacity
+            onPress={retry}
+            activeOpacity={0.75}
+            className="rounded-full bg-primary px-5 py-2 dark:bg-primary-700"
+          >
+            <Text className="text-sm font-semibold text-white">Retry</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <View className="gap-4 px-5 pb-10 pt-4">
           <Text className="text-xs text-muted">
@@ -129,33 +170,70 @@ export default function ReconciliationScreen() {
 
           <View className="overflow-hidden rounded-xl bg-white dark:bg-zinc-900">
             <Text className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:text-white">
-              Paid Orders ({paidOrders.length})
+              Paid Orders ({paidOrders.length}
+              {ordersLoading ? '+' : ''})
             </Text>
-            {paidOrders.length === 0 ? (
+            {paidOrders.length === 0 && ordersLoading ? (
+              <Text className="px-4 py-6 text-center text-sm text-muted">Loading orders...</Text>
+            ) : paidOrders.length === 0 && !ordersError ? (
               <Text className="px-4 py-6 text-center text-sm text-muted">
                 No paid orders in this period
               </Text>
             ) : (
-              paidOrders.map((order) => (
-                <ListItem
-                  key={order.orderNumber}
-                  title={(order.customer?.nickname ?? 'Unknown').toUpperCase()}
-                  subtitle={fulfillmentLabel(order.fulfillmentType)}
-                  right={
-                    <View className="items-end gap-1">
-                      <Text className="text-base font-bold text-zinc-900 dark:text-white">
-                        {fmtPeso(Number(order.total))}
-                      </Text>
-                      <Badge
-                        label={paymentLabel(order.paymentStatus)}
-                        variant={paymentVariant(order.paymentStatus)}
-                      />
-                    </View>
-                  }
-                  onPress={() => router.push(`/order/${order.orderNumber}`)}
-                />
-              ))
+              <>
+                {visibleOrders.map((order) => (
+                  <ListItem
+                    key={order.orderNumber}
+                    title={(order.customer?.nickname ?? 'Unknown').toUpperCase()}
+                    subtitle={fulfillmentLabel(order.fulfillmentType)}
+                    description={fmtPaidAt(order.paidAt)}
+                    right={
+                      <View className="items-end gap-1">
+                        <Text className="text-base font-bold text-zinc-900 dark:text-white">
+                          {fmtPeso(Number(order.total))}
+                        </Text>
+                        <Badge
+                          label={paymentLabel(order.paymentStatus)}
+                          variant={paymentVariant(order.paymentStatus)}
+                        />
+                      </View>
+                    }
+                    onPress={() => router.push(`/order/${order.orderNumber}`)}
+                  />
+                ))}
+                {hasMoreToShow ? (
+                  <TouchableOpacity
+                    onPress={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    activeOpacity={0.75}
+                    className="items-center py-3.5"
+                  >
+                    <Text className="text-sm font-semibold text-primary dark:text-primary-300">
+                      Show {Math.min(PAGE_SIZE, paidOrders.length - visibleCount)} more (
+                      {paidOrders.length - visibleCount} remaining)
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
+              </>
             )}
+            {ordersLoading && paidOrders.length > 0 ? (
+              <View className="items-center border-t border-zinc-100 py-3 dark:border-zinc-800">
+                <Text className="text-xs text-muted">Loading more orders...</Text>
+              </View>
+            ) : null}
+            {ordersError ? (
+              <View className="items-center gap-2 border-t border-zinc-100 px-4 py-4 dark:border-zinc-800">
+                <Text className="text-center text-xs text-muted">
+                  Couldn&apos;t finish loading orders: {ordersError}
+                </Text>
+                <TouchableOpacity
+                  onPress={retry}
+                  activeOpacity={0.75}
+                  className="rounded-full bg-primary px-4 py-1.5 dark:bg-primary-700"
+                >
+                  <Text className="text-xs font-semibold text-white">Retry</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         </View>
       )}

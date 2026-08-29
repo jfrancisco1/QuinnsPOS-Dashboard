@@ -230,45 +230,64 @@ function extractToken(json: unknown): string | null {
   return typeof raw === "string" ? raw : null;
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// The backend throttles requests ("Too Many Attempts"), which pagination-heavy
+// screens (e.g. reconciliation paging through a month of orders) can trip in a
+// normal burst. Back off and retry a few times before surfacing the error.
+const MAX_RATE_LIMIT_RETRIES = 3;
+
 async function authFetch<T>(
   token: string,
   path: string,
   options: RequestInit = {},
 ): Promise<ApiResult<T>> {
-  try {
-    const response = await fetch(`${BASE_URL}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${token}`,
-        ...(options.headers ?? {}),
-      },
-    });
-    let json: unknown;
+  for (let attempt = 0; ; attempt++) {
     try {
-      json = await response.json();
-    } catch {
+      const response = await fetch(`${BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+          ...(options.headers ?? {}),
+        },
+      });
+
+      if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
+        const retryAfter = Number(response.headers.get("Retry-After"));
+        const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** attempt;
+        await delay(waitMs);
+        continue;
+      }
+
+      let json: unknown;
+      try {
+        json = await response.json();
+      } catch {
+        if (response.ok) {
+          return { ok: true, data: null as T };
+        }
+        return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
+      }
       if (response.ok) {
-        return { ok: true, data: null as T };
+        return { ok: true, data: json as T };
       }
-      return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
-    }
-    if (response.ok) {
-      return { ok: true, data: json as T };
-    }
-    const err = json as Record<string, unknown>;
-    let message =
-      typeof err["message"] === "string" ? err["message"] : "Request failed";
-    if (err["errors"] && typeof err["errors"] === "object") {
-      const firstField = Object.values(err["errors"] as Record<string, string[]>)[0];
-      if (Array.isArray(firstField) && firstField.length > 0) {
-        message = firstField[0];
+      const err = json as Record<string, unknown>;
+      let message =
+        typeof err["message"] === "string" ? err["message"] : "Request failed";
+      if (err["errors"] && typeof err["errors"] === "object") {
+        const firstField = Object.values(err["errors"] as Record<string, string[]>)[0];
+        if (Array.isArray(firstField) && firstField.length > 0) {
+          message = firstField[0];
+        }
       }
+      return { ok: false, error: { message, status: response.status } };
+    } catch {
+      return { ok: false, error: { message: "Network error", status: 0 } };
     }
-    return { ok: false, error: { message, status: response.status } };
-  } catch {
-    return { ok: false, error: { message: "Network error", status: 0 } };
   }
 }
 
@@ -341,7 +360,15 @@ export type OrdersPage = {
 
 export async function getOrders(
   token: string,
-  params?: { from?: string; to?: string; branch_id?: number; cursor?: string; search?: string; payment_status?: string },
+  params?: {
+    from?: string;
+    to?: string;
+    branch_id?: number;
+    cursor?: string;
+    search?: string;
+    payment_status?: string;
+    date_basis?: 'created' | 'paid';
+  },
 ): Promise<ApiResult<OrdersPage>> {
   const query = new URLSearchParams();
   if (params?.from) query.set('from', params.from);
@@ -350,6 +377,7 @@ export async function getOrders(
   if (params?.cursor) query.set('cursor', params.cursor);
   if (params?.search) query.set('search', params.search);
   if (params?.payment_status) query.set('payment_status', params.payment_status);
+  if (params?.date_basis) query.set('date_basis', params.date_basis);
   const qs = query.toString();
   const result = await authFetch<unknown>(token, `/orders${qs ? `?${qs}` : ''}`);
   if (!result.ok) return result;

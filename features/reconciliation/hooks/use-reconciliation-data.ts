@@ -3,52 +3,50 @@ import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
 import { getOrders, getSalesByPaymentType, type Branch, type Order, type SalesByPaymentType } from '@/lib/api';
-import { computeDateRange, getPeriodLabel, parseLocalISO, toISO, type Period } from '@/lib/date-helpers';
+import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 
-// The /orders endpoint has no paid-date filter (from/to only match createdAt), so to list orders
-// paid within the selected period we widen the createdAt window and filter client-side using each
-// order's paymentHistory. This misses orders that took longer than this to go from created to paid.
-const PAID_LOOKBACK_DAYS = 30;
+export type PaidOrder = Order & { paidAt: string };
 
-function subtractDays(iso: string, days: number): string {
-  const d = parseLocalISO(iso);
-  d.setDate(d.getDate() - days);
-  return toISO(d);
-}
-
-// Matches the backend's date_basis=paid grouping, which buckets by Asia/Manila calendar day.
-function manilaDateOf(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-}
-
-function paidDateOf(order: Order): string | null {
+// GET /orders?date_basis=paid (shipped in bfb9678) filters server-side on the date each
+// order most recently transitioned into its current paid status, restricted to orders
+// currently in a paid status. We still read paymentHistory client-side to know exactly
+// *when* each returned order was paid (for display/sort) — the server already guarantees
+// every order it returns here has a paid transition, so no null-safety fallback is needed.
+function latestPaidTransitionAt(order: Order): string {
   const paidTransitions = (order.paymentHistory ?? []).filter((h) => h.toStatus?.startsWith('paid'));
-  if (paidTransitions.length === 0) return null;
   const latest = paidTransitions.reduce((a, b) => (new Date(a.changedAt) > new Date(b.changedAt) ? a : b));
-  return manilaDateOf(latest.changedAt);
+  return latest.changedAt;
 }
 
+// Streams paid orders page-by-page instead of waiting for the whole result to finish
+// paginating — each page is merged in and handed to `onProgress` immediately, so the
+// list fills in as data arrives instead of the screen sitting blank until the last page.
 async function fetchPaidOrdersInRange(
   token: string,
   { from, to, branch_id }: { from: string; to: string; branch_id?: number },
-): Promise<Order[]> {
-  const paddedFrom = subtractDays(from, PAID_LOOKBACK_DAYS);
-  const all: Order[] = [];
+  onProgress: (orders: PaidOrder[]) => void,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const accumulated: PaidOrder[] = [];
   let cursor: string | undefined;
-  do {
-    const result = await getOrders(token, { from: paddedFrom, to, branch_id, cursor });
-    if (!result.ok) break;
-    all.push(...result.data.data);
-    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
-  } while (cursor);
+  try {
+    do {
+      const result = await getOrders(token, { from, to, branch_id, date_basis: 'paid', cursor });
+      if (!result.ok) return { ok: false, message: result.error.message };
 
-  return all
-    .filter((o) => o.paymentStatus !== 'unpaid')
-    .map((o) => ({ order: o, paidDate: paidDateOf(o) }))
-    .filter((x): x is { order: Order; paidDate: string } => x.paidDate != null && x.paidDate >= from && x.paidDate <= to)
-    .sort((a, b) => b.paidDate.localeCompare(a.paidDate))
-    .map((x) => x.order);
+      for (const o of result.data.data) {
+        accumulated.push({ ...o, paidAt: latestPaidTransitionAt(o) });
+      }
+      accumulated.sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+      onProgress([...accumulated]);
+
+      cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
+    } while (cursor);
+
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : 'Unexpected error' };
+  }
 }
 
 type Props = {
@@ -62,8 +60,12 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
-  const [paidOrders, setPaidOrders] = useState<Order[]>([]);
+  const [paidOrders, setPaidOrders] = useState<PaidOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,7 +88,13 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
         setOffset(0);
       }
 
+      let cancelled = false;
+
       setLoading(true);
+      setError(null);
+      setOrdersLoading(true);
+      setOrdersError(null);
+      setPaidOrders([]);
 
       let fromStr: string;
       let toStr: string;
@@ -99,21 +107,55 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
         toStr = range.to;
       }
 
-      Promise.all([
-        getSalesByPaymentType(token, 'custom', {
-          from: fromStr,
-          to: toStr,
-          branch_id: selectedBranch?.id,
-          date_basis: 'paid',
-        }),
-        fetchPaidOrdersInRange(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
-      ]).then(([salesResult, orders]) => {
-        if (salesResult.ok) setSalesByPayment(salesResult.data);
-        setPaidOrders(orders);
-        setLoading(false);
-      });
-    }, [token, period, offset, customFrom, customTo, selectedBranch]),
+      // Sales totals are a single request and gate the initial screen. The paid-orders
+      // list is fetched separately below and streams in progressively, so a wide (e.g.
+      // month-long) window doesn't hold the whole screen on a blank loading state.
+      getSalesByPaymentType(token, 'custom', {
+        from: fromStr,
+        to: toStr,
+        branch_id: selectedBranch?.id,
+        date_basis: 'paid',
+      })
+        .then((salesResult) => {
+          if (cancelled) return;
+          if (!salesResult.ok) {
+            setError(salesResult.error.message);
+          } else {
+            setSalesByPayment(salesResult.data);
+          }
+          setLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setError(e instanceof Error ? e.message : 'Unexpected error');
+          setLoading(false);
+        });
+
+      fetchPaidOrdersInRange(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }, (partial) => {
+        if (cancelled) return;
+        setPaidOrders(partial);
+      })
+        .then((result) => {
+          if (cancelled) return;
+          if (!result.ok) setOrdersError(result.message);
+          setOrdersLoading(false);
+        })
+        .catch((e) => {
+          if (cancelled) return;
+          setOrdersError(e instanceof Error ? e.message : 'Unexpected error');
+          setOrdersLoading(false);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token, period, offset, customFrom, customTo, selectedBranch, reloadKey]),
   );
+
+  function retry() {
+    setReloadKey((k) => k + 1);
+  }
 
   function handlePeriodSelect(key: Period) {
     if (key === 'custom') {
@@ -139,6 +181,10 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
     paidOrders,
     overallTotal,
     loading,
+    error,
+    ordersLoading,
+    ordersError,
+    retry,
     periodLabel,
     canGoForward,
     canGoBack,
