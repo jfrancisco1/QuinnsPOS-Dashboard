@@ -26,7 +26,7 @@ const MAPPING = {
   'xmark.circle.fill': 'cancel',
   'banknote.fill': 'payments',
   'plus': 'add',
-  'square.and.arrow.up': 'share',
+  'square.and.arrow.up': 'ios-share',
   'gearshape.fill': 'settings',
   'person.circle.fill': 'account-circle',
   'arrow.triangle.2.circlepath': 'sync',

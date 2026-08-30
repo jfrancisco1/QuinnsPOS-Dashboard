@@ -61,22 +61,23 @@ export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCar
       <View className="overflow-hidden rounded-2xl bg-white">
         {/* Header band */}
         <View className="items-center border-b border-zinc-100 bg-white px-8 pb-10 pt-11">
-          <Image
-            source={require('@/assets/images/ios-light.png')}
-            style={{ width: 64, height: 64, borderRadius: 16 }}
-            resizeMode="contain"
-          />
-          <Text style={{ fontFamily: 'Ceoruse' }} className="mt-4 text-2xl text-primary">
-            QUINNS
-          </Text>
-          <Text className="mt-5 text-sm font-medium text-zinc-500">
+          <View style={{ width: 64, height: 64, borderRadius: 16, overflow: 'hidden' }}>
+            <Image
+              source={require('@/assets/images/ios-light.png')}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          </View>
+          <Text className="mt-4 text-center text-xs text-zinc-500">
             {new Date(order.createdAt).toLocaleString(undefined, {
               month: 'short', day: 'numeric', year: 'numeric',
               hour: 'numeric', minute: '2-digit',
             })}
           </Text>
           {!!store?.name && (
-            <Text className="mt-3 text-sm font-semibold text-zinc-700">{store.name}</Text>
+            <Text className="mt-1 text-center text-sm font-semibold text-zinc-700">
+              {store.name}
+            </Text>
           )}
           {!!branchAddress && (
             <Text className="mt-1 text-center text-xs text-zinc-500">{branchAddress}</Text>
