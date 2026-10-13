@@ -32,12 +32,16 @@ git log --format='%s%n%n%b%n===' -8
 ```
 <TICKET-ID>: <type>(<scope>): <imperative summary>
 
-<why this change was needed, in a sentence or two>
+- <short, plain change>
+- <short, plain change>
 
-- <notable change, if more than one thing happened>
-
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+<one-line note, only if something needs action>
 ```
+
+- Keep it straightforward and simple: short bullets in plain words, one line each.
+  No long explanations, no file paths unless they help.
+- No `Co-Authored-By` or any other Claude/AI attribution line, even if older
+  commits in the log have one.
 
 - Subject: imperative, lowercase after the colon, no period, ≤72 chars.
 - Type: `feat` / `fix` / `docs` / `style` / `refactor` / `perf` / `test` / `chore`.
@@ -47,10 +51,10 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
   with `TICKET-ID: ` before `type(scope):` — e.g.
   `QN-6: fix(orders): stop order list flicker...`. Omit entirely when no ticket is
   known; don't ask for one unless the repo's history shows every commit has one.
-- Body: only if the change needs explaining beyond the subject — the *why*, not a
-  restatement of the diff. Skip it for small, obvious commits.
-- Mention anything the next person needs to know: a migration to run, a breaking
-  change, a follow-up left undone.
+- Body: bullets only when more than one thing changed. Skip it for small, obvious
+  commits.
+- Add a one-line note only for something the next person must act on: a migration
+  to run, a breaking change, new builds needed.
 - Two unrelated changes staged together → say so and suggest splitting, but still
   write one message if the user wants one commit.
 
