@@ -39,27 +39,21 @@ export function BranchPickerModal({ visible, onClose }: BranchPickerModalProps) 
             Select Branch
           </Text>
 
+          {/* No selected branch means unfiltered, so "All" just clears the selection */}
+          {branches.length > 1 && (
+            <BranchOption
+              label="All Branches"
+              selected={selectedBranch === null}
+              onPress={() => { setSelectedBranch(null); onClose(); }}
+            />
+          )}
           {branches.map((branch) => (
-            <TouchableOpacity
+            <BranchOption
               key={branch.id}
+              label={branch.name}
+              selected={selectedBranch?.id === branch.id}
               onPress={() => { setSelectedBranch(branch); onClose(); }}
-              className={`mb-2 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
-                selectedBranch?.id === branch.id ? 'bg-primary' : 'bg-chip dark:bg-chip-dark'
-              }`}
-            >
-              <Text
-                className={`font-semibold ${
-                  selectedBranch?.id === branch.id
-                    ? 'text-white'
-                    : 'text-ink dark:text-subtle-dark'
-                }`}
-              >
-                {branch.name}
-              </Text>
-              {selectedBranch?.id === branch.id && (
-                <View className="h-2 w-2 rounded-full bg-white/80" />
-              )}
-            </TouchableOpacity>
+            />
           ))}
           <TouchableOpacity
             onPress={() => { onClose(); logout(); }}
@@ -72,5 +66,27 @@ export function BranchPickerModal({ visible, onClose }: BranchPickerModalProps) 
         </View>
       </TouchableOpacity>
     </Modal>
+  );
+}
+
+type BranchOptionProps = {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+};
+
+function BranchOption({ label, selected, onPress }: BranchOptionProps) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`mb-2 flex-row items-center justify-between rounded-2xl px-4 py-3.5 ${
+        selected ? 'bg-primary' : 'bg-chip dark:bg-chip-dark'
+      }`}
+    >
+      <Text className={`font-semibold ${selected ? 'text-white' : 'text-ink dark:text-subtle-dark'}`}>
+        {label}
+      </Text>
+      {selected && <View className="h-2 w-2 rounded-full bg-white/80" />}
+    </TouchableOpacity>
   );
 }
