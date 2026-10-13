@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
 import { BreakdownCard } from '@/features/sales/components/breakdown-card';
 import { LoadsCard } from '@/features/sales/components/loads-card';
+import { OrderTypesCard } from '@/features/sales/components/order-types-card';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
 import { SalesByItemsCard } from '@/features/sales/components/sales-by-items-card';
@@ -37,6 +38,7 @@ export default function SalesScreen() {
     totalLoads,
     loadsOrderCount,
     loadsBreakdown,
+    ordersByFulfillment,
     dailySummaries,
     granularity,
     loading,
@@ -126,6 +128,8 @@ export default function SalesScreen() {
             breakdown={loadsBreakdown}
             itemsMap={itemsMap}
           />
+
+          <OrderTypesCard ordersByFulfillment={ordersByFulfillment} />
 
           <SalesByItemsCard salesByItem={salesByItem} itemsMap={itemsMap} />
 

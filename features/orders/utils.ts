@@ -45,6 +45,9 @@ export function fulfillmentLabel(type: string): string {
       return 'Delivery';
     case 'pickup':
       return 'Pickup';
+    case 'pickup-deliver':
+    case 'pickup_deliver':
+      return 'Pickup & Delivery';
     case 'walk_in':
     case 'walk-in':
       return 'Walk-in';

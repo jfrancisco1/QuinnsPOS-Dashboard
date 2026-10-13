@@ -422,6 +422,8 @@ export type LoadsSummary = {
   totalLoads: number;
   orderCount: number;
   breakdown: LoadsBreakdownRow[];
+  // Order counts keyed by normalized fulfillmentType ('walk_in', 'pickup_deliver', ...).
+  ordersByFulfillment: Record<string, number>;
 };
 
 // Loads = sum of order item quantities across ALL orders in the range, regardless
@@ -433,12 +435,15 @@ export async function getLoadsSummary(
   let totalLoads = 0;
   let orderCount = 0;
   const byItem = new Map<string, LoadsBreakdownRow>();
+  const ordersByFulfillment: Record<string, number> = {};
   let cursor: string | undefined;
   do {
     const result = await getOrders(token, { ...params, cursor });
     if (!result.ok) return result;
     for (const order of result.data.data) {
       orderCount += 1;
+      const fulfillment = (order.fulfillmentType ?? '').toLowerCase().replace(/-/g, '_');
+      ordersByFulfillment[fulfillment] = (ordersByFulfillment[fulfillment] ?? 0) + 1;
       for (const item of order.items) {
         const qty = Number(item.qty);
         totalLoads += qty;
@@ -453,7 +458,7 @@ export async function getLoadsSummary(
     cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
   } while (cursor);
   const breakdown = Array.from(byItem.values()).sort((a, b) => b.qty - a.qty);
-  return { ok: true, data: { totalLoads, orderCount, breakdown } };
+  return { ok: true, data: { totalLoads, orderCount, breakdown, ordersByFulfillment } };
 }
 
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';

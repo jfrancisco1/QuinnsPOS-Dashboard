@@ -52,6 +52,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
   const [totalLoads, setTotalLoads] = useState(0);
   const [loadsOrderCount, setLoadsOrderCount] = useState(0);
   const [loadsBreakdown, setLoadsBreakdown] = useState<LoadsBreakdownRow[]>([]);
+  const [ordersByFulfillment, setOrdersByFulfillment] = useState<Record<string, number>>({});
   const [dailySummaries, setDailySummaries] = useState<{ date: string; netSales: number }[]>([]);
   const [granularity, setGranularity] = useState<SalesSummary['group_by']>('hour');
   const [loading, setLoading] = useState(true);
@@ -134,6 +135,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
           setTotalLoads(breakdown.reduce((sum, row) => sum + row.qty, 0));
           setLoadsOrderCount(loadsRes.data.orderCount);
           setLoadsBreakdown(breakdown);
+          setOrdersByFulfillment(loadsRes.data.ordersByFulfillment);
         }
         setLoading(false);
       });
@@ -171,6 +173,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
     totalLoads,
     loadsOrderCount,
     loadsBreakdown,
+    ordersByFulfillment,
     dailySummaries,
     granularity,
     loading,
