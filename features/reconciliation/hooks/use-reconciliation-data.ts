@@ -22,16 +22,20 @@ function latestPaidTransitionAt(order: Order): string {
 // Streams paid orders page-by-page instead of waiting for the whole result to finish
 // paginating — each page is merged in and handed to `onProgress` immediately, so the
 // list fills in as data arrives instead of the screen sitting blank until the last page.
+// `isCancelled` is checked between pages so a superseded range stops paging instead of
+// burning through the rate limit in the background.
 async function fetchPaidOrdersInRange(
   token: string,
   { from, to, branch_id }: { from: string; to: string; branch_id?: number },
   onProgress: (orders: PaidOrder[]) => void,
+  isCancelled: () => boolean,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const accumulated: PaidOrder[] = [];
   let cursor: string | undefined;
   try {
     do {
       const result = await getOrders(token, { from, to, branch_id, date_basis: 'paid', cursor });
+      if (isCancelled()) return { ok: true };
       if (!result.ok) return { ok: false, message: result.error.message };
 
       for (const o of result.data.data) {
@@ -134,7 +138,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
       fetchPaidOrdersInRange(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }, (partial) => {
         if (cancelled) return;
         setPaidOrders(partial);
-      })
+      }, () => cancelled)
         .then((result) => {
           if (cancelled) return;
           if (!result.ok) setOrdersError(result.message);

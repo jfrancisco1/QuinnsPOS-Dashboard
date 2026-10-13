@@ -392,31 +392,6 @@ export async function getOrders(
   };
 }
 
-export type UnpaidSummary = { total: number; count: number };
-
-// Report endpoints net out deliveryFee from their "unpaid"/"outstanding" figures (revenue-only),
-// but the amount actually owed by the customer is order.total (subtotal + deliveryFee - discount).
-// This walks every page of unpaid orders for the range and sums order.total client-side so that
-// figure is available consistently anywhere it's needed (Orders view, Dashboard).
-export async function getUnpaidSummary(
-  token: string,
-  params: { from: string; to: string; branch_id?: number },
-): Promise<ApiResult<UnpaidSummary>> {
-  let total = 0;
-  let count = 0;
-  let cursor: string | undefined;
-  do {
-    const result = await getOrders(token, { ...params, payment_status: 'unpaid', cursor });
-    if (!result.ok) return result;
-    for (const order of result.data.data) {
-      total += Number(order.total);
-      count += 1;
-    }
-    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
-  } while (cursor);
-  return { ok: true, data: { total, count } };
-}
-
 export type LoadsBreakdownRow = { itemId: string; label: string; qty: number };
 export type LoadsSummary = {
   totalLoads: number;
@@ -428,37 +403,29 @@ export type LoadsSummary = {
 
 // Loads = sum of order item quantities across ALL orders in the range, regardless
 // of payment status (unlike the sales reports, which only cover paid orders).
+// Aggregated server-side so long ranges cost one request instead of paging /orders.
 export async function getLoadsSummary(
   token: string,
   params: { from: string; to: string; branch_id?: number },
 ): Promise<ApiResult<LoadsSummary>> {
-  let totalLoads = 0;
-  let orderCount = 0;
-  const byItem = new Map<string, LoadsBreakdownRow>();
-  const ordersByFulfillment: Record<string, number> = {};
-  let cursor: string | undefined;
-  do {
-    const result = await getOrders(token, { ...params, cursor });
-    if (!result.ok) return result;
-    for (const order of result.data.data) {
-      orderCount += 1;
-      const fulfillment = (order.fulfillmentType ?? '').toLowerCase().replace(/-/g, '_');
-      ordersByFulfillment[fulfillment] = (ordersByFulfillment[fulfillment] ?? 0) + 1;
-      for (const item of order.items) {
-        const qty = Number(item.qty);
-        totalLoads += qty;
-        const existing = byItem.get(item.itemId);
-        if (existing) {
-          existing.qty += qty;
-        } else {
-          byItem.set(item.itemId, { itemId: item.itemId, label: item.label, qty });
-        }
-      }
-    }
-    cursor = result.data.hasMore ? (result.data.nextCursor ?? undefined) : undefined;
-  } while (cursor);
-  const breakdown = Array.from(byItem.values()).sort((a, b) => b.qty - a.qty);
-  return { ok: true, data: { totalLoads, orderCount, breakdown, ordersByFulfillment } };
+  const query = new URLSearchParams({ from: params.from, to: params.to });
+  if (params.branch_id != null) query.set('branch_id', String(params.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/loads?${query.toString()}`);
+  if (!result.ok) return result;
+  const raw = result.data as Partial<LoadsSummary>;
+  return {
+    ok: true,
+    data: {
+      totalLoads: Number(raw.totalLoads ?? 0),
+      orderCount: Number(raw.orderCount ?? 0),
+      breakdown: (raw.breakdown ?? []).map((row) => ({
+        itemId: String(row.itemId),
+        label: row.label,
+        qty: Number(row.qty),
+      })),
+      ordersByFulfillment: raw.ordersByFulfillment ?? {},
+    },
+  };
 }
 
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
