@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Text } from 'react-native';
 
 type ToastVariant = 'success' | 'error';
@@ -17,7 +17,7 @@ const variantStyles: Record<ToastVariant, string> = {
 };
 
 export function Toast({ message, variant = 'success', visible, onHide, duration = 3000 }: Props) {
-  const opacity = useRef(new Animated.Value(0)).current;
+  const [opacity] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!visible) return;

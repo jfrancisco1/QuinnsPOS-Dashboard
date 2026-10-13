@@ -61,9 +61,12 @@ export default function ReconciliationScreen() {
     handlePeriodSelect,
   } = useReconciliationData({ token, selectedBranch });
 
-  useEffect(() => {
+  // Reset pagination when the order list changes (adjusting state during render avoids an extra effect pass).
+  const [prevPaidOrders, setPrevPaidOrders] = useState(paidOrders);
+  if (paidOrders !== prevPaidOrders) {
+    setPrevPaidOrders(paidOrders);
     setVisibleCount(PAGE_SIZE);
-  }, [paidOrders]);
+  }
 
   const visibleOrders = paidOrders.slice(0, visibleCount);
   const hasMoreToShow = visibleCount < paidOrders.length;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Image, Text } from 'react-native';
 
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import { useAuth } from '@/context/auth-context';
 
 export default function SplashScreen() {
   const { token, isLoading } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(1));
   const [minDone, setMinDone] = useState(false);
 
   useEffect(() => {
