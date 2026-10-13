@@ -1,6 +1,5 @@
 import '../global.css';
 
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, router, Stack, Theme, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -127,11 +126,9 @@ export default function RootLayout() {
         <ThemeProvider value={colorScheme === 'dark' ? AppDarkTheme : AppLightTheme}>
           <AuthProvider>
             <BranchProvider>
-              <BottomSheetModalProvider>
-                <ToastProvider>
-                  <RootLayoutNav />
-                </ToastProvider>
-              </BottomSheetModalProvider>
+              <ToastProvider>
+                <RootLayoutNav />
+              </ToastProvider>
             </BranchProvider>
           </AuthProvider>
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
