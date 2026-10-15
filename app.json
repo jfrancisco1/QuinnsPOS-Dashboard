@@ -21,7 +21,7 @@
         "backgroundColor": "#560591"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.jfrancisco2.QuinnsPOSDashboard"
+      "package": "com.jfrancisco2.quinnsposdashboard"
     },
     "web": {
       "output": "static",
