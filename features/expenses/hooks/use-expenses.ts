@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { getExpenseCategories, getExpenses, type Branch, type Expense, type ExpenseCategory } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, isInDateRange, parseLocalISO, toISO, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+import { useReconnectKey } from '@/lib/network-status';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -84,6 +85,7 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const reconnectKey = useReconnectKey();
 
   const fetchExpenses = useCallback(async (isRefresh = false) => {
     if (!token) return;
@@ -117,7 +119,7 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
         setOffset(0);
       }
       fetchExpenses();
-    }, [token, loadBranches, fetchExpenses]),
+    }, [token, loadBranches, fetchExpenses, reconnectKey]),
   );
 
   const onRefresh = useCallback(() => fetchExpenses(true), [fetchExpenses]);

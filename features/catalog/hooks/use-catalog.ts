@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 
 import { getCategories, getItems, type Branch, type Category, type Item } from '@/lib/api';
+import { useReconnectKey } from '@/lib/network-status';
 
 type Props = {
   token: string | null;
@@ -14,6 +15,7 @@ export function useCatalog({ token, selectedBranch, loadBranches }: Props) {
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const reconnectKey = useReconnectKey();
 
   useFocusEffect(
     useCallback(() => {
@@ -26,7 +28,7 @@ export function useCatalog({ token, selectedBranch, loadBranches }: Props) {
           setLoading(false);
         },
       );
-    }, [token, selectedBranch, loadBranches]),
+    }, [token, selectedBranch, loadBranches, reconnectKey]),
   );
 
   return { items, categories, loading };

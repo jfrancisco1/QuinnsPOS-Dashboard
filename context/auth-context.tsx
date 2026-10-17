@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 import { loginRequest } from '@/lib/api';
+import { clearCachedResponses } from '@/lib/offline-cache';
 import { deleteToken, getToken, saveToken } from '@/lib/secure-storage';
 
 export type LoginResult =
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function login(username: string, password: string): Promise<LoginResult> {
     const result = await loginRequest({ username, password });
     if (result.ok) {
+      await clearCachedResponses();
       await saveToken(result.data.token);
       setToken(result.data.token);
       return { success: true };
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function logout(): Promise<void> {
     await deleteToken();
+    await clearCachedResponses();
     setToken(null);
   }
 

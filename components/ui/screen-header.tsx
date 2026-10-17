@@ -3,6 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 
 type Props = {
   title: string;
@@ -39,6 +40,7 @@ export function ScreenHeader({ title, subtitle, onBranchPress, children }: Props
           <View className="h-10 w-10" />
         )}
       </View>
+      <OfflineBanner />
       {children}
     </View>
   );

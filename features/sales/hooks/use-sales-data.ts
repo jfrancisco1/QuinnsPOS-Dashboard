@@ -18,6 +18,7 @@ import {
 import { isAddOnCategory } from '@/features/sales/utils';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+import { useReconnectKey } from '@/lib/network-status';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -55,6 +56,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
   const [dailySummaries, setDailySummaries] = useState<{ date: string; netSales: number }[]>([]);
   const [granularity, setGranularity] = useState<SalesSummary['group_by']>('hour');
   const [loading, setLoading] = useState(true);
+  const reconnectKey = useReconnectKey();
 
   useFocusEffect(
     useCallback(() => {
@@ -133,7 +135,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
       return () => {
         cancelled = true;
       };
-    }, [token, period, offset, customFrom, customTo, selectedBranch]),
+    }, [token, period, offset, customFrom, customTo, selectedBranch, reconnectKey]),
   );
 
   function handlePeriodSelect(key: Period) {

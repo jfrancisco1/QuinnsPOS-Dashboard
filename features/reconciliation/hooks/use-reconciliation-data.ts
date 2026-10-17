@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { getOrders, getSalesByPaymentType, type Branch, type Order, type SalesByPaymentType } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+import { useReconnectKey } from '@/lib/network-status';
 
 export type PaidOrder = Order & { paidAt: string };
 
@@ -70,6 +71,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const reconnectKey = useReconnectKey();
 
   useFocusEffect(
     useCallback(() => {
@@ -154,7 +156,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
         cancelled = true;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [token, period, offset, customFrom, customTo, selectedBranch, reloadKey]),
+    }, [token, period, offset, customFrom, customTo, selectedBranch, reloadKey, reconnectKey]),
   );
 
   function retry() {

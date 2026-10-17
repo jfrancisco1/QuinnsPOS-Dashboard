@@ -5,6 +5,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { getOrders, type Branch, type Order } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+import { useReconnectKey } from '@/lib/network-status';
 
 const STATUS_TABS = ['All', 'Paid', 'Unpaid'];
 
@@ -24,6 +25,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [focusTick, setFocusTick] = useState(0);
+  const reconnectKey = useReconnectKey();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -95,7 +97,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
       }
       setLoading(false);
     });
-  }, [focusTick, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
+  }, [focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
   async function loadMore() {
     if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMoreRef.current) return;

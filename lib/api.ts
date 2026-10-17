@@ -1,3 +1,6 @@
+import { readCachedResponse, writeCachedResponse } from "@/lib/offline-cache";
+import { reportLiveResponse, reportNetworkFailure } from "@/lib/network-status";
+
 const BASE_URL = "https://laundryappapi-production.up.railway.app/api/v1";
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
@@ -239,14 +242,32 @@ function delay(ms: number): Promise<void> {
 // normal burst. Back off and retry a few times before surfacing the error.
 const MAX_RATE_LIMIT_RETRIES = 3;
 
+// Without a timeout, a request on a dead connection can hang indefinitely
+// instead of failing over to the offline cache.
+const REQUEST_TIMEOUT_MS = 30_000;
+
+const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your internet connection.";
+
+// GET responses are cached so screens can render the last-known data offline.
+// Search results are skipped: they're one-off queries that would only crowd
+// out the cache.
+function isCacheable(path: string, options: RequestInit): boolean {
+  const method = (options.method ?? "GET").toUpperCase();
+  return method === "GET" && !/[?&]search=/.test(path);
+}
+
 async function authFetch<T>(
   token: string,
   path: string,
   options: RequestInit = {},
 ): Promise<ApiResult<T>> {
+  const cacheable = isCacheable(path, options);
   for (let attempt = 0; ; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const response = await fetch(`${BASE_URL}${path}`, {
+        signal: controller.signal,
         ...options,
         headers: {
           "Content-Type": "application/json",
@@ -263,6 +284,7 @@ async function authFetch<T>(
         continue;
       }
 
+      reportLiveResponse();
       let json: unknown;
       try {
         json = await response.json();
@@ -273,6 +295,7 @@ async function authFetch<T>(
         return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
       }
       if (response.ok) {
+        if (cacheable) writeCachedResponse(path, json);
         return { ok: true, data: json as T };
       }
       const err = json as Record<string, unknown>;
@@ -286,7 +309,14 @@ async function authFetch<T>(
       }
       return { ok: false, error: { message, status: response.status } };
     } catch {
-      return { ok: false, error: { message: "Network error", status: 0 } };
+      const cached = cacheable ? await readCachedResponse(path) : null;
+      reportNetworkFailure(cached?.savedAt ?? null);
+      if (cached) {
+        return { ok: true, data: cached.data as T };
+      }
+      return { ok: false, error: { message: NETWORK_ERROR_MESSAGE, status: 0 } };
+    } finally {
+      clearTimeout(timeout);
     }
   }
 }
@@ -325,7 +355,7 @@ export async function loginRequest(
           : "Invalid credentials";
     return { ok: false, error: { message, status: response.status } };
   } catch {
-    return { ok: false, error: { message: "Network error", status: 0 } };
+    return { ok: false, error: { message: NETWORK_ERROR_MESSAGE, status: 0 } };
   }
 }
 

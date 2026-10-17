@@ -30,6 +30,7 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   'person.circle.fill': 'account-circle',
   'arrow.triangle.2.circlepath': 'sync',
+  'wifi.slash': 'wifi-off',
 } as IconMapping;
 
 /**
