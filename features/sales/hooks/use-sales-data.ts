@@ -135,6 +135,8 @@ export function useSalesData({ token, selectedBranch }: Props) {
       return () => {
         cancelled = true;
       };
+      // reconnectKey is a refetch trigger, not read inside the callback.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, period, offset, customFrom, customTo, selectedBranch, reconnectKey]),
   );
 

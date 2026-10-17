@@ -14,7 +14,7 @@ import { fulfillmentLabel, paymentLabel, paymentVariant } from '@/features/order
 import { useReconciliationData } from '@/features/reconciliation/hooks/use-reconciliation-data';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
-import { fmtPeso } from '@/features/sales/utils';
+import { fmtPeso, paymentMethodKey } from '@/features/sales/utils';
 
 const PAGE_SIZE = 25;
 
@@ -39,6 +39,7 @@ export default function ReconciliationScreen() {
   const [branchModalVisible, setBranchModalVisible] = useState(false);
   const [periodModalVisible, setPeriodModalVisible] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
   useEffect(() => {
     if (token) loadBranches(token);
@@ -61,15 +62,22 @@ export default function ReconciliationScreen() {
     handlePeriodSelect,
   } = useReconciliationData({ token, selectedBranch });
 
-  // Reset pagination when the order list changes (adjusting state during render avoids an extra effect pass).
-  const [prevPaidOrders, setPrevPaidOrders] = useState(paidOrders);
-  if (paidOrders !== prevPaidOrders) {
-    setPrevPaidOrders(paidOrders);
+  const filteredOrders = selectedMethod
+    ? paidOrders.filter((o) => paymentMethodKey(o.paymentStatus) === selectedMethod)
+    : paidOrders;
+
+  // Reset pagination when the order list or method filter changes (adjusting state during render avoids an extra effect pass).
+  const [prevFilter, setPrevFilter] = useState({ paidOrders, selectedMethod });
+  if (paidOrders !== prevFilter.paidOrders || selectedMethod !== prevFilter.selectedMethod) {
+    setPrevFilter({ paidOrders, selectedMethod });
     setVisibleCount(PAGE_SIZE);
   }
 
-  const visibleOrders = paidOrders.slice(0, visibleCount);
-  const hasMoreToShow = visibleCount < paidOrders.length;
+  const visibleOrders = filteredOrders.slice(0, visibleCount);
+  const hasMoreToShow = visibleCount < filteredOrders.length;
+  const selectedLabel = selectedMethod
+    ? paymentLabel(`paid_${selectedMethod}`)
+    : null;
 
   return (
     <ScrollView className="flex-1 bg-page dark:bg-page-dark">
@@ -169,18 +177,30 @@ export default function ReconciliationScreen() {
 
           <StatCard label="Total Collected" value={fmtPeso(overallTotal)} color="indigo" />
 
-          <PaymentTypesCard salesByPayment={salesByPayment} title="Collected By Method" />
+          <PaymentTypesCard
+            salesByPayment={salesByPayment}
+            title="Collected By Method"
+            selectedMethod={selectedMethod}
+            onSelectMethod={(method) => setSelectedMethod((m) => (m === method ? null : method))}
+          />
 
           <View className="overflow-hidden rounded-xl bg-white dark:bg-zinc-900">
-            <Text className="border-b border-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-900 dark:border-zinc-800 dark:text-white">
-              Paid Orders ({paidOrders.length}
-              {ordersLoading ? '+' : ''})
-            </Text>
-            {paidOrders.length === 0 && ordersLoading ? (
+            <View className="flex-row items-center justify-between border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
+              <Text className="text-sm font-semibold text-zinc-900 dark:text-white">
+                {selectedLabel ? `${selectedLabel} Orders` : 'Paid Orders'} ({filteredOrders.length}
+                {ordersLoading ? '+' : ''})
+              </Text>
+              {selectedMethod ? (
+                <TouchableOpacity onPress={() => setSelectedMethod(null)} hitSlop={8} activeOpacity={0.6}>
+                  <Text className="text-xs font-semibold text-primary dark:text-primary-300">Show all</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            {filteredOrders.length === 0 && ordersLoading ? (
               <Text className="px-4 py-6 text-center text-sm text-muted">Loading orders...</Text>
-            ) : paidOrders.length === 0 && !ordersError ? (
+            ) : filteredOrders.length === 0 && !ordersError ? (
               <Text className="px-4 py-6 text-center text-sm text-muted">
-                No paid orders in this period
+                {selectedLabel ? `No ${selectedLabel} orders in this period` : 'No paid orders in this period'}
               </Text>
             ) : (
               <>
@@ -211,14 +231,14 @@ export default function ReconciliationScreen() {
                     className="items-center py-3.5"
                   >
                     <Text className="text-sm font-semibold text-primary dark:text-primary-300">
-                      Show {Math.min(PAGE_SIZE, paidOrders.length - visibleCount)} more (
-                      {paidOrders.length - visibleCount} remaining)
+                      Show {Math.min(PAGE_SIZE, filteredOrders.length - visibleCount)} more (
+                      {filteredOrders.length - visibleCount} remaining)
                     </Text>
                   </TouchableOpacity>
                 ) : null}
               </>
             )}
-            {ordersLoading && paidOrders.length > 0 ? (
+            {ordersLoading && filteredOrders.length > 0 ? (
               <View className="items-center border-t border-zinc-100 py-3 dark:border-zinc-800">
                 <Text className="text-xs text-muted">Loading more orders...</Text>
               </View>

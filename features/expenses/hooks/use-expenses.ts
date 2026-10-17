@@ -119,6 +119,8 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
         setOffset(0);
       }
       fetchExpenses();
+      // reconnectKey is a refetch trigger, not read inside the callback.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, loadBranches, fetchExpenses, reconnectKey]),
   );
 

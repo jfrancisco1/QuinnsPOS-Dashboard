@@ -28,6 +28,8 @@ export function useCatalog({ token, selectedBranch, loadBranches }: Props) {
           setLoading(false);
         },
       );
+      // reconnectKey is a refetch trigger, not read inside the callback.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, selectedBranch, loadBranches, reconnectKey]),
   );
 
