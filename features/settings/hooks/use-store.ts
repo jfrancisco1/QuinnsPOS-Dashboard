@@ -7,25 +7,28 @@ type Props = {
 };
 
 export function useStore({ token }: Props) {
-  const [store, setStore] = useState<Store | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const refetch = useCallback(() => {
-    if (!token) {
-      setStore(null);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    getStore(token).then((result) => {
-      setStore(result.ok ? result.data : null);
-      setLoading(false);
-    });
-  }, [token]);
+  // Tagging the result with the token it was fetched for lets `loading` be
+  // derived, instead of resetting state synchronously inside the effect.
+  const [result, setResult] = useState<{ token: string; store: Store | null } | null>(null);
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (!token) return;
+    let cancelled = false;
+    getStore(token).then((res) => {
+      if (!cancelled) setResult({ token, store: res.ok ? res.data : null });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
-  return { store, loading, refetch, setStore };
+  const setStore = useCallback(
+    (store: Store | null) => {
+      if (token) setResult({ token, store });
+    },
+    [token],
+  );
+
+  const loaded = token != null && result?.token === token;
+  return { store: loaded ? result.store : null, loading: token != null && !loaded, setStore };
 }

@@ -17,7 +17,9 @@ type Props = {
 
 export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Key of the request whose results are on screen; `loading` is derived from
+  // it rather than set synchronously inside the fetch effect.
+  const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [statusTab, setStatusTab] = useState(0);
   const [period, setPeriod] = useState<Period>('today');
@@ -57,10 +59,23 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     }, [token, loadBranches]),
   );
 
+  const requestKey = JSON.stringify([
+    focusTick,
+    reconnectKey,
+    token,
+    period,
+    offset,
+    customFrom,
+    customTo,
+    selectedBranch?.id,
+    debouncedSearch,
+    statusTab,
+  ]);
+  const loading = loadedRequestKey !== requestKey;
+
   useEffect(() => {
     if (!token) return;
-
-    setLoading(true);
+    let cancelled = false;
 
     let fromStr: string;
     let toStr: string;
@@ -86,6 +101,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     hasMoreRef.current = false;
 
     getOrders(token, fetchParamsRef.current).then((result) => {
+      if (cancelled) return;
       if (result.ok) {
         const sorted = [...result.data.data].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -95,9 +111,13 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
         nextCursorRef.current = result.data.nextCursor;
         hasMoreRef.current = result.data.hasMore;
       }
-      setLoading(false);
+      setLoadedRequestKey(requestKey);
     });
-  }, [focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestKey, focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
   async function loadMore() {
     if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMoreRef.current) return;
