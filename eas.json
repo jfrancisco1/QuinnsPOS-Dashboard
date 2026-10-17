@@ -16,17 +16,25 @@
       "distribution": "internal"
     },
     "production": {
+      "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
       },
       "ios": {
         "buildConfiguration": "Release",
-        "image": "latest",
-        "autoIncrement": true
+        "image": "latest"
       }
     }
   },
   "cli": {
     "appVersionSource": "remote"
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

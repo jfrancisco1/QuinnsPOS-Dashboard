@@ -45,3 +45,6 @@ app-example
 # Claude Code
 CLAUDE.md
 .env
+
+# Google Play service account key
+play-service-account.json
