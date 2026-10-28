@@ -3,18 +3,27 @@ import { ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 
 import { router } from 'expo-router';
 
+import { ChoiceChips } from '@/components/ui/choice-chips';
 import { TextInput } from '@/components/ui/text-input';
 import { useAuth } from '@/context/auth-context';
+import { useBranch } from '@/context/branch-context';
 import { useToast } from '@/context/toast-context';
 import { CategorySelector } from '@/features/catalog/components/category-selector';
 import { ColorPicker } from '@/features/catalog/components/color-picker';
 import { ShapePicker } from '@/features/catalog/components/shape-picker';
-import { createItem, getCategories, type Category } from '@/lib/api';
+import { createItem, getCategories, updateOnboarding, type Category } from '@/lib/api';
 import { type ItemShape } from '@/lib/item-options';
 
 export default function NewItemScreen() {
   const { token } = useAuth();
   const { showToast } = useToast();
+  const { branches, selectedBranch } = useBranch();
+  // Items are per branch: default to the branch picked on the Items screen (or
+  // the only one); with "All Branches" and several branches, the owner picks.
+  const [pickedBranchId, setPickedBranchId] = useState<number | null>(null);
+  const branchId =
+    selectedBranch?.id ?? pickedBranchId ?? (branches.length === 1 ? branches[0].id : null);
+  const askBranch = selectedBranch == null && branches.length > 1;
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [cost, setCost] = useState('');
@@ -38,24 +47,28 @@ export default function NewItemScreen() {
   async function handleSubmit() {
     if (!name.trim()) { setError('Name is required.'); return; }
     if (!price) { setError('Price is required.'); return; }
-    if (!cost) { setError('Cost is required.'); return; }
     if (categoryId === null) { setError('Please select a category.'); return; }
+    if (askBranch && branchId === null) { setError('Please choose a branch.'); return; }
 
     setIsSubmitting(true);
     setError(null);
     const result = await createItem(token!, {
       name: name.trim(),
       price: parseFloat(price),
-      cost: parseFloat(cost),
+      // Optional: a blank cost is saved as 0 (the owner can fill it in later).
+      cost: parseFloat(cost) || 0,
       description: description.trim() || undefined,
       color: color ?? undefined,
       shape: shape ?? undefined,
       is_active: isActive,
       category_id: categoryId,
       sort_order: Number(sortOrder),
+      branch_id: branchId ?? undefined,
     });
     setIsSubmitting(false);
     if (result.ok) {
+      // Saving a price ticks "Check your prices" on the setup checklist.
+      updateOnboarding(token!, 'prices', true);
       showToast('Item created');
       router.back();
     } else {
@@ -66,6 +79,16 @@ export default function NewItemScreen() {
   return (
     <ScrollView className="flex-1 bg-page dark:bg-page-dark">
       <View className="gap-4 p-4">
+        {askBranch ? (
+          <ChoiceChips
+            label="Branch *"
+            value={branchId}
+            onChange={setPickedBranchId}
+            options={branches.map((b) => ({ value: b.id, label: b.name }))}
+          />
+        ) : selectedBranch ? (
+          <Text className="text-xs text-muted">Adding to {selectedBranch.name}</Text>
+        ) : null}
         <TextInput label="Name *" placeholder="e.g. Wash & Fold" value={name} onChangeText={setName} />
         <TextInput
           label="Price *"
@@ -75,7 +98,7 @@ export default function NewItemScreen() {
           keyboardType="decimal-pad"
         />
         <TextInput
-          label="Cost *"
+          label="Cost"
           placeholder="0.00"
           value={cost}
           onChangeText={setCost}

@@ -1,7 +1,10 @@
 import { readCachedResponse, writeCachedResponse } from "@/lib/offline-cache";
 import { reportLiveResponse, reportNetworkFailure } from "@/lib/network-status";
 
-const BASE_URL = "https://laundryappapi-production.up.railway.app/api/v1";
+// Set EXPO_PUBLIC_API_URL in .env.local to target a local (Sail) API; falls back to production.
+const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  "https://laundryappapi-production.up.railway.app/api/v1";
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
 
@@ -172,6 +175,8 @@ export type CreateItemPayload = {
   is_active: boolean;
   category_id: number;
   sort_order?: number;
+  // Which branch's price list it joins (items are per branch).
+  branch_id?: number;
 };
 
 export type CreateCategoryPayload = {
@@ -363,6 +368,28 @@ export function logoutRequest(token: string) {
   return authFetch<null>(token, "/logout", { method: "POST" });
 }
 
+// features and limits come from effective_plan (which already accounts for the
+// trial and extra branches), so gate on these, never on plan. null = unlimited.
+export type TenantLimits = {
+  max_branches: number | null;
+  max_admins: number | null;
+  max_staff: number | null;
+  max_drivers: number | null;
+};
+
+export type Tenant = {
+  id: number;
+  name: string;
+  plan: string;
+  effective_plan: string;
+  on_trial: boolean;
+  trial_ends_at: string | null;
+  billing_cycle: "monthly" | "yearly" | null;
+  paid_until: string | null;
+  features: string[];
+  limits: TenantLimits;
+};
+
 export type CurrentUser = {
   id: number;
   name: string;
@@ -370,7 +397,10 @@ export type CurrentUser = {
   role: string;
   tenant_id: number;
   branch_id: number | null;
-  token_expires_at: string;
+  must_change_password: boolean;
+  token_expires_at: string | null;
+  // null for superadmin accounts, which don't belong to a tenant.
+  tenant: Tenant | null;
 };
 
 export async function getMe(token: string): Promise<ApiResult<CurrentUser>> {
@@ -378,6 +408,16 @@ export async function getMe(token: string): Promise<ApiResult<CurrentUser>> {
   if (!result.ok) return result;
   const user = extractObject<CurrentUser>(result.data) ?? (result.data as CurrentUser);
   return { ok: true, data: user };
+}
+
+export function changePassword(
+  token: string,
+  data: { current_password: string; new_password: string },
+) {
+  return authFetch<{ message: string }>(token, "/change-password", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 // ─── Orders ───────────────────────────────────────────────────────────────────
@@ -668,6 +708,40 @@ export async function getBranches(token: string): Promise<ApiResult<Branch[]>> {
   return { ok: true, data: extractArray<Branch>(result.data) };
 }
 
+export type BranchPayload = {
+  name: string;
+  address?: string;
+  phone?: string;
+};
+
+export async function createBranch(token: string, data: BranchPayload): Promise<ApiResult<Branch>> {
+  const result = await authFetch<unknown>(token, "/branches", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<Branch>(result.data) ?? (result.data as Branch) };
+}
+
+export async function updateBranch(
+  token: string,
+  id: number,
+  data: Partial<BranchPayload>,
+): Promise<ApiResult<Branch>> {
+  const result = await authFetch<unknown>(token, `/branches/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<Branch>(result.data) ?? (result.data as Branch) };
+}
+
+// Hard delete: the database cascades to the branch's orders, items, expenses,
+// pickups and the customers first registered there. Callers must guard it.
+export function deleteBranch(token: string, id: number) {
+  return authFetch<{ message: string }>(token, `/branches/${id}`, { method: "DELETE" });
+}
+
 // ─── Store ──────────────────────────────────────────────────────────────────
 // GET is available to any authenticated user; PATCH is admin-only.
 
@@ -772,4 +846,119 @@ export function updateExpenseCategory(
 
 export function deleteExpenseCategory(token: string, id: number) {
   return authFetch<null>(token, `/expense-categories/${id}`, { method: "DELETE" });
+}
+
+// ─── Plan ─────────────────────────────────────────────────────────────────────
+
+export type UpgradeRequestPayload = {
+  plan: "starter" | "pro";
+  billing_cycle: "monthly" | "yearly";
+  note?: string;
+};
+
+// Emails our team and the shop's payment instructions; the plan itself only
+// changes once the payment is recorded. Limited to 3 per day (429 after).
+export function requestUpgrade(token: string, data: UpgradeRequestPayload) {
+  return authFetch<{ message: string }>(token, "/upgrade-request", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ─── Team ─────────────────────────────────────────────────────────────────────
+// Admin only. Admin accounts are listed but read-only (403 if changed).
+
+export type TeamRole = "admin" | "staff" | "delivery";
+
+export type TeamMember = {
+  id: number;
+  name: string;
+  username: string;
+  role: TeamRole;
+  is_active: boolean;
+  tenant_id: number;
+  branch_id: number | null;
+  branch: { id: number; name: string } | null;
+  created_at: string;
+};
+
+export type CreateTeamMemberPayload = {
+  name: string;
+  username: string;
+  password: string;
+  role: "staff" | "delivery";
+  branch_id: number;
+};
+
+export type UpdateTeamMemberPayload = Partial<Omit<CreateTeamMemberPayload, "username">>;
+
+export async function getTeamMembers(token: string): Promise<ApiResult<TeamMember[]>> {
+  const result = await authFetch<unknown>(token, "/users");
+  if (!result.ok) return result;
+  return { ok: true, data: extractArray<TeamMember>(result.data) };
+}
+
+export async function createTeamMember(
+  token: string,
+  data: CreateTeamMemberPayload,
+): Promise<ApiResult<TeamMember>> {
+  const result = await authFetch<unknown>(token, "/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<TeamMember>(result.data) ?? (result.data as TeamMember) };
+}
+
+// Setting a password revokes all of the account's tokens (signed out everywhere).
+export async function updateTeamMember(
+  token: string,
+  id: number,
+  data: UpdateTeamMemberPayload,
+): Promise<ApiResult<TeamMember>> {
+  const result = await authFetch<unknown>(token, `/users/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<TeamMember>(result.data) ?? (result.data as TeamMember) };
+}
+
+// Deactivating signs the account out everywhere.
+export async function toggleTeamMember(token: string, id: number): Promise<ApiResult<TeamMember>> {
+  const result = await authFetch<unknown>(token, `/users/${id}/toggle`, { method: "PATCH" });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<TeamMember>(result.data) ?? (result.data as TeamMember) };
+}
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+// Admin only. The setup checklist's hand ticks are stored on the shop, so they
+// survive reinstalls and are the same on every device.
+
+export type OnboardingStep = "branch" | "prices" | "staff" | "driver" | "order";
+
+export type OnboardingStatus = {
+  ticked: Record<OnboardingStep | "dismissed", boolean>;
+  has_staff: boolean;
+  has_driver: boolean;
+  has_order: boolean;
+};
+
+export async function getOnboarding(token: string): Promise<ApiResult<OnboardingStatus>> {
+  const result = await authFetch<unknown>(token, "/onboarding");
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<OnboardingStatus>(result.data) ?? (result.data as OnboardingStatus) };
+}
+
+export async function updateOnboarding(
+  token: string,
+  step: OnboardingStep | "dismissed",
+  done: boolean,
+): Promise<ApiResult<OnboardingStatus>> {
+  const result = await authFetch<unknown>(token, "/onboarding", {
+    method: "PATCH",
+    body: JSON.stringify({ step, done }),
+  });
+  if (!result.ok) return result;
+  return { ok: true, data: extractObject<OnboardingStatus>(result.data) ?? (result.data as OnboardingStatus) };
 }

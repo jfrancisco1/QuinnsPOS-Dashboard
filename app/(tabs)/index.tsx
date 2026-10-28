@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { UpgradeCard } from '@/components/ui/upgrade-card';
+import { useAccount } from '@/context/account-context';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
+import { SetupChecklist } from '@/features/onboarding/components/setup-checklist';
+import { useSetupChecklist } from '@/features/onboarding/setup-checklist-context';
 import { BreakdownCard } from '@/features/sales/components/breakdown-card';
 import { LoadsCard } from '@/features/sales/components/loads-card';
 import { OrderTypesCard } from '@/features/sales/components/order-types-card';
@@ -17,7 +21,51 @@ import { SalesByItemsCard } from '@/features/sales/components/sales-by-items-car
 import { SalesOverviewChart } from '@/features/sales/components/sales-overview-chart';
 import { useSalesData } from '@/features/sales/hooks/use-sales-data';
 
-export default function SalesScreen() {
+// Until the shop is set up (or the owner hides the checklist), home shows only
+// the setup checklist; the dashboard would be empty for a new shop anyway.
+export default function HomeScreen() {
+  const { hasFullApp } = useAccount();
+  const { checklist, status, setStepDone, dismiss, reload } = useSetupChecklist();
+
+  // Tick steps finished on other screens when coming back here.
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
+
+  if (status !== 'done') {
+    return (
+      <ScrollView className="flex-1 bg-page dark:bg-page-dark">
+        <ScreenHeader title="Home" />
+        <View className="gap-4 px-5 pb-10 pt-4">
+          {!hasFullApp ? <UpgradeCard /> : null}
+          {checklist && status === 'active' ? (
+            <SetupChecklist checklist={checklist} onToggle={setStepDone} onDismiss={dismiss} />
+          ) : (
+            <Text className="py-20 text-center text-sm text-muted">Loading...</Text>
+          )}
+        </View>
+      </ScrollView>
+    );
+  }
+  return hasFullApp ? <SalesHome /> : <FreeHome />;
+}
+
+// Free after the trial: reports aren't included, so the dashboard is replaced
+// by one upgrade card.
+function FreeHome() {
+  return (
+    <ScrollView className="flex-1 bg-page dark:bg-page-dark">
+      <ScreenHeader title="Home" />
+      <View className="gap-4 px-5 pb-10 pt-4">
+        <UpgradeCard />
+      </View>
+    </ScrollView>
+  );
+}
+
+function SalesHome() {
   const { token } = useAuth();
   const { selectedBranch, loadBranches } = useBranch();
   const [chartContainerWidth, setChartContainerWidth] = useState(0);
@@ -102,6 +150,7 @@ export default function SalesScreen() {
           handlePeriodSelect(key);
         }}
       />
+
 
       {loading ? (
         <View className="items-center py-20">

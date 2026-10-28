@@ -11,6 +11,11 @@ export type LoginResult =
 type AuthContextValue = {
   token: string | null;
   isLoading: boolean;
+  // The password used for this session's login, kept in memory only so the
+  // forced first-login password change doesn't have to ask for it again.
+  // null after an app restart (the token survives, this doesn't).
+  loginPassword: string | null;
+  clearLoginPassword: () => void;
   login: (username: string, password: string) => Promise<LoginResult>;
   logout: () => Promise<void>;
 };
@@ -20,6 +25,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loginPassword, setLoginPassword] = useState<string | null>(null);
 
   useEffect(() => {
     getToken().then((stored) => {
@@ -33,6 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.ok) {
       await clearCachedResponses();
       await saveToken(result.data.token);
+      setLoginPassword(password);
       setToken(result.data.token);
       return { success: true };
     }
@@ -42,11 +49,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function logout(): Promise<void> {
     await deleteToken();
     await clearCachedResponses();
+    setLoginPassword(null);
     setToken(null);
   }
 
   return (
-    <AuthContext.Provider value={{ token, isLoading, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        isLoading,
+        loginPassword,
+        clearLoginPassword: () => setLoginPassword(null),
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

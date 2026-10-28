@@ -9,7 +9,7 @@ import { useToast } from '@/context/toast-context';
 import { CategorySelector } from '@/features/catalog/components/category-selector';
 import { ColorPicker } from '@/features/catalog/components/color-picker';
 import { ShapePicker } from '@/features/catalog/components/shape-picker';
-import { deleteItem, getCategories, updateItem, type Category } from '@/lib/api';
+import { deleteItem, getCategories, updateItem, updateOnboarding, type Category } from '@/lib/api';
 import { type ItemShape } from '@/lib/item-options';
 
 export default function EditItemScreen() {
@@ -55,7 +55,6 @@ export default function EditItemScreen() {
   async function handleSave() {
     if (!name.trim()) { setError('Name is required.'); return; }
     if (!price) { setError('Price is required.'); return; }
-    if (!cost) { setError('Cost is required.'); return; }
     if (categoryId === null) { setError('Please select a category.'); return; }
 
     setIsSubmitting(true);
@@ -63,7 +62,8 @@ export default function EditItemScreen() {
     const result = await updateItem(token!, itemId, {
       name: name.trim(),
       price: parseFloat(price),
-      cost: parseFloat(cost),
+      // Optional: a blank cost is saved as 0 (the owner can fill it in later).
+      cost: parseFloat(cost) || 0,
       description: description.trim() || undefined,
       color: color ?? undefined,
       shape: shape ?? undefined,
@@ -73,6 +73,8 @@ export default function EditItemScreen() {
     });
     setIsSubmitting(false);
     if (result.ok) {
+      // Saving a price ticks "Check your prices" on the setup checklist.
+      updateOnboarding(token!, 'prices', true);
       showToast('Changes saved');
       router.back();
     } else {
@@ -113,7 +115,7 @@ export default function EditItemScreen() {
           keyboardType="decimal-pad"
         />
         <TextInput
-          label="Cost *"
+          label="Cost"
           placeholder="0.00"
           value={cost}
           onChangeText={setCost}

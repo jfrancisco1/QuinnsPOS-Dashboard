@@ -31,6 +31,12 @@ const MAPPING = {
   'person.circle.fill': 'account-circle',
   'arrow.triangle.2.circlepath': 'sync',
   'wifi.slash': 'wifi-off',
+  'checkmark.circle.fill': 'check-circle',
+  'circle': 'radio-button-unchecked',
+  'star.fill': 'star',
+  'doc.on.doc': 'content-copy',
+  'sparkles': 'auto-awesome',
+  'lock.fill': 'lock',
 } as IconMapping;
 
 /**
