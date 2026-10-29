@@ -253,6 +253,16 @@ const REQUEST_TIMEOUT_MS = 30_000;
 
 const NETWORK_ERROR_MESSAGE = "Can't reach the server. Check your internet connection.";
 
+// Called when the API rejects a token (401): the owner set a new password or
+// turned the account off, or the shop's plan has paused it. AuthProvider signs
+// out and the login screen shows the message.
+type UnauthorizedHandler = (token: string, message: string) => void;
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
+}
+
 // GET responses are cached so screens can render the last-known data offline.
 // Search results are skipped: they're one-off queries that would only crowd
 // out the cache.
@@ -297,6 +307,7 @@ async function authFetch<T>(
         if (response.ok) {
           return { ok: true, data: null as T };
         }
+        if (response.status === 401) unauthorizedHandler?.(token, "");
         return { ok: false, error: { message: `HTTP ${response.status}`, status: response.status } };
       }
       if (response.ok) {
@@ -312,6 +323,7 @@ async function authFetch<T>(
           message = firstField[0];
         }
       }
+      if (response.status === 401) unauthorizedHandler?.(token, message);
       return { ok: false, error: { message, status: response.status } };
     } catch {
       const cached = cacheable ? await readCachedResponse(path) : null;
@@ -880,6 +892,9 @@ export type TeamMember = {
   role: TeamRole;
   is_owner: boolean;
   is_active: boolean;
+  // Active, but the shop's plan has no room for it (e.g. a driver from the
+  // trial on Free): it can't log in until the shop upgrades.
+  paused: boolean;
   tenant_id: number;
   branch_id: number | null;
   branch: { id: number; name: string } | null;

@@ -19,7 +19,7 @@ import { useAuth } from "@/context/auth-context";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, signedOutMessage } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -208,9 +208,9 @@ export default function LoginScreen() {
               }
             />
 
-            {errorMessage ? (
+            {(errorMessage ?? signedOutMessage) ? (
               <Text className="text-sm text-red-500 dark:text-red-400">
-                {errorMessage}
+                {errorMessage ?? signedOutMessage}
               </Text>
             ) : null}
 

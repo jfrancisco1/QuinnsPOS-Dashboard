@@ -48,6 +48,7 @@ export function TeamMemberRow({ member, viewerIsOwner }: Props) {
       </View>
       <View className="flex-row items-center gap-2">
         {!member.is_active ? <Badge label="Inactive" variant="warning" /> : null}
+        {member.paused ? <Badge label="Paused" variant="warning" /> : null}
         <View className="rounded-full bg-chip px-2.5 py-1 dark:bg-chip-dark">
           <Text className="text-xs font-semibold text-primary dark:text-primary-300">
             {member.is_owner ? 'Owner' : (ROLE_LABELS[member.role] ?? member.role)}

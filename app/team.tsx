@@ -41,6 +41,8 @@ export default function TeamScreen() {
     maxStaff,
   } = useTeam(token);
   const canAdd = canAddStaff || canAddDriver || canAddAdmin;
+  // Accounts made during the trial (or on a bigger plan) that the current plan has no room for.
+  const pausedCount = members.filter((m) => m.paused).length;
   // Free has no driver accounts, so don't offer them. Only the owner adds admins.
   const addLabel = isOwner ? 'Add team member' : driversIncluded ? 'Add staff or driver' : 'Add staff';
 
@@ -61,7 +63,11 @@ export default function TeamScreen() {
                 {addLabel}
               </Text>
             </TouchableOpacity>
-            {!canAdd ? (
+            {pausedCount > 0 ? (
+              <UpgradeCard
+                message={`${pausedCount} account${pausedCount === 1 ? " is" : "s are"} paused: your plan doesn't include ${pausedCount === 1 ? 'it' : 'them'}, so ${pausedCount === 1 ? 'it' : 'they'} can't log in. Upgrade to use ${pausedCount === 1 ? 'it' : 'them'} again.`}
+              />
+            ) : !canAdd ? (
               <UpgradeCard
                 message={`Your plan allows up to ${maxStaff} staff account${maxStaff === 1 ? '' : 's'}. Upgrade to add more staff and drivers.`}
               />
