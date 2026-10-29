@@ -395,6 +395,8 @@ export type CurrentUser = {
   name: string;
   username: string;
   role: string;
+  // The admin who signed the shop up; only they can add or change admin accounts.
+  is_owner: boolean;
   tenant_id: number;
   branch_id: number | null;
   must_change_password: boolean;
@@ -866,7 +868,8 @@ export function requestUpgrade(token: string, data: UpgradeRequestPayload) {
 }
 
 // ─── Team ─────────────────────────────────────────────────────────────────────
-// Admin only. Admin accounts are listed but read-only (403 if changed).
+// Admin only. Any admin manages staff and drivers; only the owner adds or changes
+// admins (403 otherwise), and the owner's own account can't be changed here.
 
 export type TeamRole = "admin" | "staff" | "delivery";
 
@@ -875,6 +878,7 @@ export type TeamMember = {
   name: string;
   username: string;
   role: TeamRole;
+  is_owner: boolean;
   is_active: boolean;
   tenant_id: number;
   branch_id: number | null;
@@ -886,8 +890,9 @@ export type CreateTeamMemberPayload = {
   name: string;
   username: string;
   password: string;
-  role: "staff" | "delivery";
-  branch_id: number;
+  role: TeamRole;
+  // Required for staff and drivers. Admins see every branch, so they have none.
+  branch_id?: number;
 };
 
 export type UpdateTeamMemberPayload = Partial<Omit<CreateTeamMemberPayload, "username">>;

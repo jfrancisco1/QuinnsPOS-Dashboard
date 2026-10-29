@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { Card } from '@/components/ui/card';
 import { ChoiceChips } from '@/components/ui/choice-chips';
 import { TextInput } from '@/components/ui/text-input';
+import { useAccount } from '@/context/account-context';
 import { useAuth } from '@/context/auth-context';
 import { CredentialsCard } from '@/features/team/components/credentials-card';
 import { NewPasswordField } from '@/features/team/components/new-password-field';
@@ -21,7 +22,17 @@ import { createTeamMember } from '@/lib/api';
 
 export default function NewTeamMemberScreen() {
   const { token } = useAuth();
-  const { branches, canAddStaff, canAddDriver, driversIncluded, maxStaff, maxDrivers } = useTeam(token);
+  const { tenant } = useAccount();
+  const {
+    branches,
+    canAddStaff,
+    canAddDriver,
+    canAddAdmin,
+    driversIncluded,
+    isOwner,
+    maxStaff,
+    maxDrivers,
+  } = useTeam(token);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   // Keep suggesting "{branch}.{name}" until the owner types their own username.
@@ -56,25 +67,37 @@ export default function NewTeamMemberScreen() {
           },
         ]
       : []),
+    // Only the owner adds admins; Free and Starter allow just the owner.
+    ...(isOwner
+      ? [
+          {
+            role: 'admin' as const,
+            blockedReason: canAddAdmin ? null : 'Pro lets you add more admins. Upgrade to add one.',
+          },
+        ]
+      : []),
   ];
 
   // Default to the only branch / the first role that's allowed.
   const effectiveBranchId = branchId ?? (branches.length === 1 ? branches[0].id : null);
   const effectiveRole = role ?? roleOptions.find((o) => o.blockedReason == null)?.role ?? null;
+  // Admins see every branch, so they get no branch and usernames start with the shop name.
+  const isAdmin = effectiveRole === 'admin';
   const branchName = branches.find((b) => b.id === effectiveBranchId)?.name;
-  const effectiveUsername = usernameEdited ? username : suggestUsername(branchName, name);
-  const roleLabel = effectiveRole === 'delivery' ? 'driver' : 'staff';
-  const placeholders = accountPlaceholders(branchName, effectiveRole);
+  const prefix = isAdmin ? tenant?.name : branchName;
+  const effectiveUsername = usernameEdited ? username : suggestUsername(prefix, name);
+  const roleLabel = effectiveRole === 'delivery' ? 'driver' : isAdmin ? 'admin' : 'staff';
+  const placeholders = accountPlaceholders(prefix, effectiveRole);
 
   const canSubmit =
     name.trim() !== '' &&
     effectiveUsername !== '' &&
     effectiveRole != null &&
-    effectiveBranchId != null &&
+    (isAdmin || effectiveBranchId != null) &&
     password.length >= MIN_PASSWORD_LENGTH;
 
   async function handleSubmit() {
-    if (!token || !canSubmit || effectiveRole == null || effectiveBranchId == null) return;
+    if (!token || !canSubmit || effectiveRole == null) return;
     setIsSubmitting(true);
     setError(null);
     const result = await createTeamMember(token, {
@@ -82,7 +105,7 @@ export default function NewTeamMemberScreen() {
       username: effectiveUsername,
       password,
       role: effectiveRole,
-      branch_id: effectiveBranchId,
+      ...(!isAdmin && effectiveBranchId != null ? { branch_id: effectiveBranchId } : {}),
     });
     setIsSubmitting(false);
     if (result.ok) {
@@ -108,7 +131,9 @@ export default function NewTeamMemberScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, gap: 16 }}>
         <Card title="Role">
           <RolePicker options={roleOptions} value={effectiveRole} onChange={setRole} />
-          {branches.length > 1 ? (
+          {isAdmin ? (
+            <Text className="mt-3 text-xs text-muted">Sees every branch</Text>
+          ) : branches.length > 1 ? (
             <View className="mt-4">
               <ChoiceChips
                 label="Branch"

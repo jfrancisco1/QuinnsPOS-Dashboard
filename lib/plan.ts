@@ -18,6 +18,9 @@ export const STAFF_APP_URL =
   'https://play.google.com/store/apps/details?id=com.kheldiente.quinnlaundryapp';
 // Not published yet; screens show a "coming soon" note instead of a link.
 export const DRIVER_APP_URL: string | null = null;
+// This app, for the logins of admins the owner adds.
+export const ADMIN_APP_URL =
+  'https://play.google.com/store/apps/details?id=com.jfrancisco2.quinnsposdashboard';
 
 export function formatPeso(amount: number): string {
   return `₱${amount.toLocaleString('en-US')}`;

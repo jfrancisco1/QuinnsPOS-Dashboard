@@ -32,9 +32,9 @@ export function suggestUsername(branchName: string | undefined, personName: stri
 // than a person: many shops share one counter login per tablet.
 export function accountPlaceholders(
   branchName: string | undefined,
-  role: 'staff' | 'delivery' | null,
+  role: TeamRole | null,
 ): { name: string; username: string } {
-  const label = role === 'delivery' ? 'Driver' : 'Counter';
+  const label = role === 'delivery' ? 'Driver' : role === 'admin' ? 'Manager' : 'Counter';
   return {
     name: branchName ? `${branchName} ${label}` : label,
     username: suggestUsername(branchName, label),

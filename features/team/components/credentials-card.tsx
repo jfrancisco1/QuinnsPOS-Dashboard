@@ -4,22 +4,40 @@ import * as Clipboard from 'expo-clipboard';
 
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/context/toast-context';
-import { DRIVER_APP_URL, STAFF_APP_URL } from '@/lib/plan';
+import type { TeamRole } from '@/lib/api';
+import { ADMIN_APP_URL, DRIVER_APP_URL, STAFF_APP_URL } from '@/lib/plan';
 
 type Props = {
   name: string;
   username: string;
   password: string;
-  role: 'staff' | 'delivery';
+  role: TeamRole;
   onDone: () => void;
+};
+
+const APPS: Record<TeamRole, { name: string; url: string | null; hint: string }> = {
+  staff: {
+    name: 'Staff app',
+    url: STAFF_APP_URL,
+    hint: 'Type this into the Staff app on your counter tablet.',
+  },
+  delivery: {
+    name: 'Driver app',
+    url: DRIVER_APP_URL,
+    hint: "Type this into the Driver app on the driver's phone.",
+  },
+  admin: {
+    name: 'Admin app',
+    url: ADMIN_APP_URL,
+    hint: 'They type this into this app (the Admin app) on their own phone.',
+  },
 };
 
 // Shown right after creating an account or setting its password. The API never
 // returns passwords, so this is the only time the owner sees it.
 export function CredentialsCard({ name, username, password, role, onDone }: Props) {
   const { showToast } = useToast();
-  const appName = role === 'delivery' ? 'Driver app' : 'Staff app';
-  const appUrl = role === 'delivery' ? DRIVER_APP_URL : STAFF_APP_URL;
+  const { name: appName, url: appUrl, hint } = APPS[role];
   const text = `Quinns POS ${appName} login for ${name}\nUsername: ${username}\nPassword: ${password}${
     appUrl ? `\nGet the app: ${appUrl}` : ''
   }`;
@@ -52,11 +70,7 @@ export function CredentialsCard({ name, username, password, role, onDone }: Prop
           </TouchableOpacity>
         </View>
 
-        <Text className="text-sm text-subtle dark:text-subtle-dark">
-          {role === 'delivery'
-            ? "Type this into the Driver app on the driver's phone."
-            : 'Type this into the Staff app on your counter tablet.'}
-        </Text>
+        <Text className="text-sm text-subtle dark:text-subtle-dark">{hint}</Text>
 
         {appUrl ? (
           <TouchableOpacity

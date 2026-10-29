@@ -12,9 +12,7 @@ import { CredentialsCard } from '@/features/team/components/credentials-card';
 import { NewPasswordField } from '@/features/team/components/new-password-field';
 import { useTeam } from '@/features/team/hooks/use-team';
 import { MIN_PASSWORD_LENGTH } from '@/features/team/utils';
-import { toggleTeamMember, updateTeamMember } from '@/lib/api';
-
-type Role = 'staff' | 'delivery';
+import { toggleTeamMember, updateTeamMember, type TeamRole } from '@/lib/api';
 
 export default function EditTeamMemberScreen() {
   const { token } = useAuth();
@@ -28,12 +26,14 @@ export default function EditTeamMemberScreen() {
     is_active: string;
   }>();
   const memberId = Number(params.id);
-  const originalRole = params.role === 'delivery' ? 'delivery' : 'staff';
+  const originalRole: TeamRole =
+    params.role === 'delivery' || params.role === 'admin' ? params.role : 'staff';
   const isActive = params.is_active !== '0';
-  const { branches, driversIncluded } = useTeam(token);
+  // Only the owner gets here for an admin (the row is locked for everyone else).
+  const { branches, loading, driversIncluded, isOwner, canAddAdmin } = useTeam(token);
 
   const [name, setName] = useState(params.name ?? '');
-  const [role, setRole] = useState<Role>(originalRole);
+  const [role, setRole] = useState<TeamRole>(originalRole);
   const [branchId, setBranchId] = useState<number | null>(
     params.branch_id ? Number(params.branch_id) : null,
   );
@@ -43,15 +43,23 @@ export default function EditTeamMemberScreen() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [newCredentials, setNewCredentials] = useState<string | null>(null);
 
+  // Admins see every branch; anyone else needs one (an admin moved to staff picks it here).
+  const isAdmin = role === 'admin';
+  const effectiveBranchId = branchId ?? (branches.length === 1 ? branches[0].id : null);
+  const branchName = branches.find((b) => b.id === effectiveBranchId)?.name;
+  // Wait for the branch list, or a quick Save after picking a role finds no branch yet.
+  const saveDisabled = busy != null || loading;
+
   async function handleSave() {
     if (!token) return;
     if (!name.trim()) return setError('Name is required.');
+    if (!isAdmin && effectiveBranchId == null) return setError('Pick the branch they work at.');
     setBusy('save');
     setError(null);
     const result = await updateTeamMember(token, memberId, {
       name: name.trim(),
       role,
-      ...(branchId != null ? { branch_id: branchId } : {}),
+      ...(!isAdmin && effectiveBranchId != null ? { branch_id: effectiveBranchId } : {}),
     });
     setBusy(null);
     if (result.ok) {
@@ -146,24 +154,32 @@ export default function EditTeamMemberScreen() {
                 ...(driversIncluded || originalRole === 'delivery'
                   ? [{ value: 'delivery' as const, label: 'Driver' }]
                   : []),
+                // Only the owner makes someone an admin, and only while the plan has room.
+                ...(isOwner && (canAddAdmin || originalRole === 'admin')
+                  ? [{ value: 'admin' as const, label: 'Admin' }]
+                  : []),
               ]}
             />
-            {branches.length > 1 ? (
+            {isAdmin ? (
+              <Text className="text-xs text-muted">Admins see every branch.</Text>
+            ) : branches.length > 1 ? (
               <ChoiceChips
                 label="Branch"
-                value={branchId}
+                value={effectiveBranchId}
                 onChange={setBranchId}
                 options={branches.map((b) => ({ value: b.id, label: b.name }))}
               />
+            ) : branchName ? (
+              <Text className="text-xs text-muted">Works at {branchName}</Text>
             ) : null}
 
             {error ? <Text className="text-sm text-red-500 dark:text-red-400">{error}</Text> : null}
 
             <TouchableOpacity
               onPress={handleSave}
-              disabled={busy != null}
+              disabled={saveDisabled}
               activeOpacity={0.8}
-              className={`w-full items-center rounded-xl bg-primary py-3.5${busy ? ' opacity-50' : ''}`}
+              className={`w-full items-center rounded-xl bg-primary py-3.5${saveDisabled ? ' opacity-50' : ''}`}
             >
               <Text className="text-sm font-semibold text-white">
                 {busy === 'save' ? 'Saving...' : 'Save Changes'}

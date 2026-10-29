@@ -10,15 +10,17 @@ import type { TeamMember } from '@/lib/api';
 
 type Group = { key: string; title: string; members: TeamMember[] };
 
-// Admins have no branch, so they lead as "Owner"; everyone else is grouped by branch.
+// Admins have no branch, so they lead as "Owner and admins" (owner first); everyone
+// else is grouped by branch.
 function groupMembers(members: TeamMember[]): Group[] {
   const groups = new Map<string, Group>();
   for (const member of members) {
     const key = member.branch ? `branch-${member.branch.id}` : 'none';
-    const title = member.branch?.name ?? (member.role === 'admin' ? 'Owner' : 'No branch');
+    const title = member.branch?.name ?? (member.role === 'admin' ? 'Owner and admins' : 'No branch');
     if (!groups.has(key)) groups.set(key, { key, title, members: [] });
     groups.get(key)!.members.push(member);
   }
+  groups.get('none')?.members.sort((a, b) => Number(b.is_owner) - Number(a.is_owner));
   return Array.from(groups.values()).sort((a, b) =>
     a.key === 'none' ? -1 : b.key === 'none' ? 1 : a.title.localeCompare(b.title),
   );
@@ -27,11 +29,20 @@ function groupMembers(members: TeamMember[]): Group[] {
 // Opened from Settings. Available on every plan, including Free after the trial.
 export default function TeamScreen() {
   const { token } = useAuth();
-  const { members, loading, error, canAddStaff, canAddDriver, driversIncluded, maxStaff } =
-    useTeam(token);
-  const canAdd = canAddStaff || canAddDriver;
-  // Free has no driver accounts, so don't offer them.
-  const addLabel = driversIncluded ? 'Add staff or driver' : 'Add staff';
+  const {
+    members,
+    loading,
+    error,
+    canAddStaff,
+    canAddDriver,
+    canAddAdmin,
+    driversIncluded,
+    isOwner,
+    maxStaff,
+  } = useTeam(token);
+  const canAdd = canAddStaff || canAddDriver || canAddAdmin;
+  // Free has no driver accounts, so don't offer them. Only the owner adds admins.
+  const addLabel = isOwner ? 'Add team member' : driversIncluded ? 'Add staff or driver' : 'Add staff';
 
   return (
     <ScrollView className="flex-1 bg-page dark:bg-page-dark">
@@ -69,7 +80,7 @@ export default function TeamScreen() {
                 {group.title}
               </Text>
               {group.members.map((member) => (
-                <TeamMemberRow key={member.id} member={member} />
+                <TeamMemberRow key={member.id} member={member} viewerIsOwner={isOwner} />
               ))}
             </View>
           ))

@@ -9,11 +9,13 @@ import type { TeamMember } from '@/lib/api';
 
 type Props = {
   member: TeamMember;
+  // Whether the signed-in admin is the shop owner.
+  viewerIsOwner: boolean;
 };
 
-export function TeamMemberRow({ member }: Props) {
-  // Admin accounts can only be changed by Quinns POS support.
-  const readOnly = member.role === 'admin';
+export function TeamMemberRow({ member, viewerIsOwner }: Props) {
+  // Nobody changes the owner here, and only the owner changes other admins.
+  const readOnly = member.is_owner || (member.role === 'admin' && !viewerIsOwner);
 
   function openEdit() {
     router.push({
@@ -48,7 +50,7 @@ export function TeamMemberRow({ member }: Props) {
         {!member.is_active ? <Badge label="Inactive" variant="warning" /> : null}
         <View className="rounded-full bg-chip px-2.5 py-1 dark:bg-chip-dark">
           <Text className="text-xs font-semibold text-primary dark:text-primary-300">
-            {ROLE_LABELS[member.role] ?? member.role}
+            {member.is_owner ? 'Owner' : (ROLE_LABELS[member.role] ?? member.role)}
           </Text>
         </View>
         {readOnly ? (

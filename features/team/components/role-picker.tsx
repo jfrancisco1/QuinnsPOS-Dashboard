@@ -1,8 +1,9 @@
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import type { TeamRole } from '@/lib/api';
 
-export type PickableRole = 'staff' | 'delivery';
+export type PickableRole = TeamRole;
 
 export type RoleOption = {
   role: PickableRole;
@@ -13,6 +14,10 @@ export type RoleOption = {
 const ROLE_COPY: Record<PickableRole, { title: string; body: string }> = {
   staff: { title: 'Staff', body: 'Takes orders at the counter with the Staff app.' },
   delivery: { title: 'Driver', body: 'Does pickups and deliveries with the Driver app.' },
+  admin: {
+    title: 'Admin',
+    body: 'Uses this app: sees every branch and all sales, and manages staff and drivers.',
+  },
 };
 
 type Props = {

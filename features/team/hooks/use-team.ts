@@ -15,7 +15,7 @@ type Loaded = {
 
 // Team members and branches, reloaded on focus, plus what the plan allows adding.
 export function useTeam(token: string | null) {
-  const { tenant } = useAccount();
+  const { user, tenant } = useAccount();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
 
   const reload = useCallback(async () => {
@@ -44,6 +44,10 @@ export function useTeam(token: string | null) {
   const canAddStaff = !isAtLimit(activeStaff, limits?.max_staff ?? null);
   const driversIncluded = limits?.max_drivers !== 0;
   const canAddDriver = driversIncluded && !isAtLimit(activeDrivers, limits?.max_drivers ?? null);
+  // Only the owner adds admins. Free and Starter allow one admin (the owner), Pro unlimited.
+  const isOwner = user?.is_owner === true;
+  const activeAdmins = members.filter((m) => m.is_active && m.role === 'admin').length;
+  const canAddAdmin = isOwner && !isAtLimit(activeAdmins, limits?.max_admins ?? null);
 
   return {
     members,
@@ -56,5 +60,7 @@ export function useTeam(token: string | null) {
     canAddStaff,
     canAddDriver,
     driversIncluded,
+    isOwner,
+    canAddAdmin,
   };
 }
