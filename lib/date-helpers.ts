@@ -43,6 +43,49 @@ export function computeDateRange(
   return { from: `${year}-01-01`, to: `${year}-12-31` };
 }
 
+const COMPARE_UNIT: Record<Exclude<Period, 'custom'>, [current: string, past: string]> = {
+  today: ['this time yesterday', 'the day before'],
+  this_week: ['this point last week', 'the week before'],
+  this_month: ['this point last month', 'the month before'],
+  this_year: ['this point last year', 'the year before'],
+};
+
+/**
+ * The range to compare a period's net sales against, and how to label it. The current
+ * (in-progress) period is compared like-for-like: the previous period is cut off as far
+ * into it as now is into the current one, so a half-finished week isn't measured
+ * against a whole one. `to` then carries a local time ("YYYY-MM-DD HH:MM:SS").
+ */
+export function computeCompareRange(
+  period: Period,
+  offset: number,
+  customFrom: string,
+  customTo: string,
+): { from: string; to: string; label: string } | null {
+  if (period === 'custom') {
+    if (!customFrom || !customTo) return null;
+    const from = parseLocalISO(customFrom);
+    const days = Math.round((parseLocalISO(customTo).getTime() - from.getTime()) / 86_400_000) + 1;
+    const prevTo = new Date(from);
+    prevTo.setDate(from.getDate() - 1);
+    const prevFrom = new Date(prevTo);
+    prevFrom.setDate(prevTo.getDate() - (days - 1));
+    return { from: toISO(prevFrom), to: toISO(prevTo), label: `the ${days} day${days !== 1 ? 's' : ''} before` };
+  }
+
+  const [currentLabel, pastLabel] = COMPARE_UNIT[period];
+  const previous = computeDateRange(period, offset - 1);
+  if (offset !== 0) return { ...previous, label: pastLabel };
+
+  const elapsed = Date.now() - parseLocalISO(computeDateRange(period, 0).from).getTime();
+  const cutoff = new Date(parseLocalISO(previous.from).getTime() + elapsed);
+  const previousEnd = parseLocalISO(previous.to);
+  previousEnd.setHours(23, 59, 59);
+  const end = cutoff < previousEnd ? cutoff : previousEnd;
+  const time = [end.getHours(), end.getMinutes(), end.getSeconds()].map((n) => String(n).padStart(2, '0')).join(':');
+  return { from: previous.from, to: `${toISO(end)} ${time}`, label: currentLabel };
+}
+
 export function getPeriodLabel(
   period: Period,
   offset: number,

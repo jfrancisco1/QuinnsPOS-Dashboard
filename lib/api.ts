@@ -116,6 +116,8 @@ export type SalesSummary = {
   grossSales: number;
   discounts: number;
   netSales: number;
+  // Net sales over the compare_from..compare_to range; null when none was sent.
+  previousNetSales: number | null;
   costOfGoods: number;
   grossProfit: number;
   expenses: number;
@@ -513,6 +515,48 @@ export async function getLoadsSummary(
   };
 }
 
+export type ReadyOrder = {
+  orderNumber: string;
+  customer: { id: string; nickname: string; mobile: string | null } | null;
+  fulfillmentType: string;
+  total: number;
+  paymentStatus: string;
+  readySince: string;
+  daysWaiting: number;
+};
+
+export type ReadyOrdersSummary = {
+  overdueAfterDays: number;
+  readyOrders: number;
+  overdueOrders: number;
+  // Counts keyed by normalized fulfillmentType ('walk_in', 'pickup_deliver').
+  byFulfillment: Record<string, number>;
+  orders: ReadyOrder[];
+};
+
+// Orders finished and waiting for pickup or delivery right now (not tied to the
+// selected period), oldest first.
+export async function getReadyOrders(
+  token: string,
+  params: { branch_id?: number },
+): Promise<ApiResult<ReadyOrdersSummary>> {
+  const query = new URLSearchParams();
+  if (params.branch_id != null) query.set('branch_id', String(params.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/ready-orders?${query.toString()}`);
+  if (!result.ok) return result;
+  const raw = result.data as Partial<ReadyOrdersSummary>;
+  return {
+    ok: true,
+    data: {
+      overdueAfterDays: Number(raw.overdueAfterDays ?? 3),
+      readyOrders: Number(raw.readyOrders ?? 0),
+      overdueOrders: Number(raw.overdueOrders ?? 0),
+      byFulfillment: raw.byFulfillment ?? {},
+      orders: (raw.orders ?? []).map((o) => ({ ...o, total: Number(o.total), daysWaiting: Number(o.daysWaiting) })),
+    },
+  };
+}
+
 export type PaymentStatus = 'unpaid' | 'paid_cash' | 'paid_gcash' | 'paid_bank' | 'paid_others';
 export type OrderStatus = 'pending' | 'in_progress' | 'ready' | 'completed' | 'cancelled';
 
@@ -563,7 +607,7 @@ export async function getOrderByNumber(
 export async function getSalesSummary(
   token: string,
   period: "today" | "this_week" | "this_month" | "this_year" | "custom",
-  opts?: { from?: string; to?: string; branch_id?: number },
+  opts?: { from?: string; to?: string; branch_id?: number; compare_from?: string; compare_to?: string },
 ): Promise<ApiResult<SalesSummary>> {
   const params = new URLSearchParams();
   if (period === "custom") {
@@ -573,6 +617,10 @@ export async function getSalesSummary(
     params.set("period", period);
   }
   if (opts?.branch_id) params.set("branch_id", String(opts.branch_id));
+  if (opts?.compare_from && opts?.compare_to) {
+    params.set("compare_from", opts.compare_from);
+    params.set("compare_to", opts.compare_to);
+  }
   const result = await authFetch<unknown>(
     token,
     `/reports/sales?${params.toString()}`,

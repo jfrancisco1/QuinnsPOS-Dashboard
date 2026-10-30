@@ -17,6 +17,7 @@ import { LoadsCard } from '@/features/sales/components/loads-card';
 import { OrderTypesCard } from '@/features/sales/components/order-types-card';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
+import { ReadyOrdersCard } from '@/features/sales/components/ready-orders-card';
 import { SalesByItemsCard } from '@/features/sales/components/sales-by-items-card';
 import { SalesOverviewChart } from '@/features/sales/components/sales-overview-chart';
 import { useSalesData } from '@/features/sales/hooks/use-sales-data';
@@ -80,6 +81,8 @@ function SalesHome() {
     period,
     setOffset,
     summary,
+    compareLabel,
+    readyOrders,
     salesByItem,
     itemsMap,
     salesByPayment,
@@ -158,6 +161,8 @@ function SalesHome() {
         </View>
       ) : (
         <View className="gap-4 px-5 pb-10 pt-4">
+          <ReadyOrdersCard readyOrders={readyOrders} />
+
           <SalesOverviewChart
             granularity={granularity}
             dailySummaries={dailySummaries}
@@ -169,6 +174,7 @@ function SalesHome() {
             summary={summary}
             grossProfit={grossProfit}
             totalExpenses={totalExpenses}
+            compareLabel={compareLabel}
           />
 
           <LoadsCard

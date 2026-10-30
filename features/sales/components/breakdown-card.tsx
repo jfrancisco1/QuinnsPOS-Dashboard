@@ -9,13 +9,28 @@ type Props = {
   summary: SalesSummary | null;
   grossProfit: number;
   totalExpenses: number;
+  // What previousNetSales covers, e.g. "this point last week"; null hides the comparison.
+  compareLabel: string | null;
 };
 
-export function BreakdownCard({ summary, grossProfit, totalExpenses }: Props) {
+// "▲ 8% vs this point last week". Hidden when there's nothing to compare against
+// (with no previous sales a percentage means nothing).
+function netSalesChange(summary: SalesSummary | null, compareLabel: string | null) {
+  const previous = summary?.previousNetSales;
+  if (summary == null || previous == null || previous <= 0 || compareLabel == null) return null;
+  const pct = Math.round(((summary.netSales - previous) / previous) * 100);
+  if (pct === 0) return { text: `No change vs ${compareLabel}`, color: '#71717A', darkColor: '#A1A1AA' };
+  return pct > 0
+    ? { text: `▲ ${pct}% vs ${compareLabel}`, color: '#16A34A', darkColor: '#86EFAC' }
+    : { text: `▼ ${Math.abs(pct)}% vs ${compareLabel}`, color: '#DC2626', darkColor: '#FCA5A5' };
+}
+
+export function BreakdownCard({ summary, grossProfit, totalExpenses, compareLabel }: Props) {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const netProfit = summary?.netProfit ?? 0;
   const collected = summary?.collected ?? 0;
+  const change = netSalesChange(summary, compareLabel);
   const mainItems = [
     { label: 'Gross Sales', value: summary?.grossSales ?? 0, color: '#560591', darkColor: '#C084FC', bold: false, currency: true },
     { label: 'Discounts', value: -(summary?.discounts ?? 0), color: '#EF4444', darkColor: '#FCA5A5', bold: false, currency: true },
@@ -35,13 +50,20 @@ export function BreakdownCard({ summary, grossProfit, totalExpenses }: Props) {
               item.bold ? 'bg-chip dark:bg-chip-dark -mx-4 px-4 rounded-xl' : ''
             }`}
           >
-            <Text
-              className={`text-sm ${
-                item.bold ? 'font-bold text-ink dark:text-white' : 'text-subtle dark:text-muted'
-              }`}
-            >
-              {item.label}
-            </Text>
+            <View>
+              <Text
+                className={`text-sm ${
+                  item.bold ? 'font-bold text-ink dark:text-white' : 'text-subtle dark:text-muted'
+                }`}
+              >
+                {item.label}
+              </Text>
+              {item.label === 'Net Sales' && change && (
+                <Text className="mt-0.5 text-xs font-semibold" style={{ color: isDark ? change.darkColor : change.color }}>
+                  {change.text}
+                </Text>
+              )}
+            </View>
             <Text className="text-sm font-bold" style={{ color: isDark ? item.darkColor : item.color }}>
               {item.currency
                 ? item.value < 0 ? `-${fmtPeso(Math.abs(item.value))}` : fmtPeso(Math.abs(item.value))

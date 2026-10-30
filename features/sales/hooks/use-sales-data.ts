@@ -5,18 +5,20 @@ import { router, useFocusEffect } from 'expo-router';
 import {
   getItems,
   getLoadsSummary,
+  getReadyOrders,
   getSalesByItem,
   getSalesByPaymentType,
   getSalesSummary,
   type Branch,
   type Item,
   type LoadsBreakdownRow,
+  type ReadyOrdersSummary,
   type SalesByItem,
   type SalesByPaymentType,
   type SalesSummary,
 } from '@/lib/api';
 import { isAddOnCategory } from '@/features/sales/utils';
-import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
+import { computeCompareRange, computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 import { useReconnectKey } from '@/lib/network-status';
 
@@ -46,6 +48,8 @@ export function useSalesData({ token, selectedBranch }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [summary, setSummary] = useState<SalesSummary | null>(null);
+  const [compareLabel, setCompareLabel] = useState<string | null>(null);
+  const [readyOrders, setReadyOrders] = useState<ReadyOrdersSummary | null>(null);
   const [salesByItem, setSalesByItem] = useState<SalesByItem[]>([]);
   const [itemsMap, setItemsMap] = useState<Map<number, Item>>(new Map());
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
@@ -94,16 +98,26 @@ export function useSalesData({ token, selectedBranch }: Props) {
         toStr = range.to;
       }
 
+      const compare = computeCompareRange(activePeriod, activeOffset, activeFrom, activeTo);
+
       Promise.all([
-        getSalesSummary(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+        getSalesSummary(token, 'custom', {
+          from: fromStr,
+          to: toStr,
+          branch_id: selectedBranch?.id,
+          compare_from: compare?.from,
+          compare_to: compare?.to,
+        }),
         getSalesByItem(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
         getSalesByPaymentType(token, 'custom', { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
         getItems(token),
         getLoadsSummary(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
-      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes, loadsRes]) => {
+        getReadyOrders(token, { branch_id: selectedBranch?.id }),
+      ]).then(([sumRes, itemsRes, paymentRes, allItemsRes, loadsRes, readyRes]) => {
         if (cancelled) return;
         if (sumRes.ok) {
           setSummary(sumRes.data);
+          setCompareLabel(compare?.label ?? null);
           setGranularity(sumRes.data.group_by);
           setDailySummaries(
             sumRes.data.series.map(({ label, net_sales }) => ({
@@ -129,6 +143,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
           setLoadsBreakdown(breakdown);
           setOrdersByFulfillment(loadsRes.data.ordersByFulfillment);
         }
+        if (readyRes.ok) setReadyOrders(readyRes.data);
         setLoading(false);
       });
 
@@ -165,6 +180,8 @@ export function useSalesData({ token, selectedBranch }: Props) {
     customFrom,
     customTo,
     summary,
+    compareLabel,
+    readyOrders,
     salesByItem,
     itemsMap,
     salesByPayment,
