@@ -98,6 +98,7 @@ export type Order = {
   fulfillmentType: string;
   subtotal: number;
   deliveryFee: number;
+  discountAmount: number;
   total: number;
   paymentStatus: string;
   orderStatus: string;

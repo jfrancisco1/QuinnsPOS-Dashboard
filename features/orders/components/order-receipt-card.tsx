@@ -130,6 +130,9 @@ export const OrderReceiptCard = forwardRef<View, Props>(function OrderReceiptCar
           <View className="mt-4">
             <TotalRow label="Subtotal" value={fmtAmount(order.subtotal)} />
             <TotalRow label="Delivery Fee" value={fmtAmount(order.deliveryFee)} />
+            {(order.discountAmount ?? 0) > 0 && (
+              <TotalRow label="Discount" value={`-${fmtAmount(order.discountAmount)}`} />
+            )}
             <View className="mt-3 flex-row justify-between border-t border-zinc-100 pt-4">
               <Text className="text-base font-bold text-zinc-900">Total</Text>
               <Text className="text-xl font-bold text-primary">{fmtAmount(order.total)}</Text>

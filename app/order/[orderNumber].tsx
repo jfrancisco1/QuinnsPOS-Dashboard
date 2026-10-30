@@ -247,6 +247,14 @@ export default function OrderDetailScreen() {
                 ₱{Number(order.deliveryFee).toFixed(2)}
               </Text>
             </View>
+            {(order.discountAmount ?? 0) > 0 && (
+              <View className="flex-row justify-between py-1">
+                <Text className="text-sm text-zinc-600 dark:text-zinc-400">Discount</Text>
+                <Text className="text-sm text-zinc-900 dark:text-white">
+                  -₱{Number(order.discountAmount).toFixed(2)}
+                </Text>
+              </View>
+            )}
             <View className="mt-2 flex-row justify-between border-t border-zinc-100 pt-3 dark:border-zinc-800">
               <Text className="text-base font-bold text-zinc-900 dark:text-white">Total</Text>
               <Text className="text-xl font-bold text-zinc-900 dark:text-white">
