@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
 import { getExpenseCategories, getExpenses, type Branch, type Expense, type ExpenseCategory } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, isInDateRange, parseLocalISO, toISO, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
+import { cacheThenNetwork } from '@/lib/cache-then-network';
 import { useReconnectKey } from '@/lib/network-status';
 
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -83,29 +84,49 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
   const [categories, setCategories] = useState<ExpenseCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Branch whose expenses are on screen (saved copy or server), and the last
+  // load error, tagged with its branch.
+  const [shownBranchKey, setShownBranchKey] = useState<string | null>(null);
+  const [error, setError] = useState<{ key: string; message: string } | null>(null);
   const reconnectKey = useReconnectKey();
+  const branchKey = String(selectedBranch?.id ?? 'all');
+
+  // Only the latest request may update the screen, so a slow response for the
+  // previous branch can't overwrite the current one.
+  const latestRequestRef = useRef(0);
 
   const fetchExpenses = useCallback(async (isRefresh = false) => {
     if (!token) return;
+    const requestId = ++latestRequestRef.current;
+    const isLatest = () => requestId === latestRequestRef.current;
+    const key = String(selectedBranch?.id ?? 'all');
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    const [expensesRes, categoriesRes] = await Promise.all([
-      getExpenses(token, { branch_id: selectedBranch?.id ?? undefined }),
-      getExpenseCategories(token),
+    setUpdating(true);
+    setError(null);
+    const [expensesRes] = await Promise.all([
+      cacheThenNetwork(
+        () => getExpenses(token, { branch_id: selectedBranch?.id ?? undefined }),
+        (data) => {
+          if (!isLatest()) return;
+          setExpenses(
+            [...data].sort((a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()),
+          );
+          setShownBranchKey(key);
+        },
+      ),
+      cacheThenNetwork(
+        () => getExpenseCategories(token),
+        (data) => {
+          if (isLatest()) setCategories([...data].sort((a, b) => a.sort_order - b.sort_order));
+        },
+      ),
     ]);
-    if (expensesRes.ok) {
-      const sorted = [...expensesRes.data].sort(
-        (a, b) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime(),
-      );
-      setExpenses(sorted);
-    }
-    if (categoriesRes.ok) {
-      setCategories([...categoriesRes.data].sort((a, b) => a.sort_order - b.sort_order));
-    }
-    if (isRefresh) setRefreshing(false);
-    else setLoading(false);
+    if (!isLatest()) return;
+    if (!expensesRes.ok) setError({ key, message: expensesRes.error.message });
+    setRefreshing(false);
+    setUpdating(false);
   }, [token, selectedBranch]);
 
   useFocusEffect(
@@ -125,6 +146,8 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
   );
 
   const onRefresh = useCallback(() => fetchExpenses(true), [fetchExpenses]);
+  const retry = useCallback(() => fetchExpenses(), [fetchExpenses]);
+  const showingCurrent = shownBranchKey === branchKey;
 
   const range = useMemo(
     () => (period === 'custom' ? { from: customFrom, to: customTo } : computeDateRange(period, offset)),
@@ -188,8 +211,12 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
     setSelectedCategoryId,
     searchQuery,
     setSearchQuery,
-    loading,
+    // No expenses for this branch yet (the list may still hold the previous one's).
+    loading: !showingCurrent,
+    updating,
     refreshing,
     onRefresh,
+    errorMessage: error?.key === branchKey && !showingCurrent ? error.message : null,
+    retry,
   };
 }

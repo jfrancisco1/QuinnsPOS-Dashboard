@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 import { router, useFocusEffect } from 'expo-router';
 
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
+import { ErrorState } from '@/components/ui/error-state';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SkeletonCard } from '@/components/ui/skeleton';
+import { UpdatingPill } from '@/components/ui/updating-pill';
 import { UpgradeCard } from '@/components/ui/upgrade-card';
 import { useAccount } from '@/context/account-context';
 import { useAuth } from '@/context/auth-context';
@@ -44,7 +47,7 @@ export default function HomeScreen() {
           {checklist && status === 'active' ? (
             <SetupChecklist checklist={checklist} onToggle={setStepDone} onDismiss={dismiss} />
           ) : (
-            <Text className="py-20 text-center text-sm text-muted">Loading...</Text>
+            <SkeletonCard lines={5} />
           )}
         </View>
       </ScrollView>
@@ -92,7 +95,12 @@ function SalesHome() {
     ordersByFulfillment,
     dailySummaries,
     granularity,
-    loading,
+    ready,
+    updating,
+    refreshing,
+    onRefresh,
+    errorMessage,
+    retry,
     totalExpenses,
     grossProfit,
     periodLabel,
@@ -102,116 +110,141 @@ function SalesHome() {
   } = useSalesData({ token, selectedBranch });
 
   return (
-    <ScrollView className="flex-1 bg-page dark:bg-page-dark">
-      <ScreenHeader
-        title="Sales"
-        subtitle={selectedBranch?.name}
-        onBranchPress={() => setBranchModalVisible(true)}
+    <View className="flex-1 bg-page dark:bg-page-dark">
+      <ScrollView
+        className="flex-1"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        <View className="mt-3 flex-row items-center">
-          <TouchableOpacity
-            onPress={() => setOffset((o) => o - 1)}
-            disabled={!canGoBack}
-            activeOpacity={0.5}
-            className={`h-8 w-8 items-center justify-center ${!canGoBack ? 'opacity-30' : ''}`}
-          >
-            <Text className="text-2xl font-bold text-white">‹</Text>
-          </TouchableOpacity>
+        <ScreenHeader
+          title="Sales"
+          subtitle={selectedBranch?.name}
+          onBranchPress={() => setBranchModalVisible(true)}
+        >
+          <View className="mt-3 flex-row items-center">
+            <TouchableOpacity
+              onPress={() => setOffset((o) => o - 1)}
+              disabled={!canGoBack}
+              activeOpacity={0.5}
+              className={`h-8 w-8 items-center justify-center ${!canGoBack ? 'opacity-30' : ''}`}
+            >
+              <Text className="text-2xl font-bold text-white">‹</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setPeriodModalVisible(true)}
-            activeOpacity={0.8}
-            className="mx-2 flex-1 items-center rounded-full bg-white/20 py-1.5"
-          >
-            <Text className="text-sm font-semibold text-white" numberOfLines={1}>
-              {periodLabel}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setOffset((o) => o + 1)}
-            disabled={!canGoForward}
-            activeOpacity={0.5}
-            className={`h-8 w-8 items-center justify-center ${!canGoForward ? 'opacity-30' : ''}`}
-          >
-            <Text className="text-2xl font-bold text-white">›</Text>
-          </TouchableOpacity>
-        </View>
-      </ScreenHeader>
-
-      <BranchPickerModal
-        visible={branchModalVisible}
-        onClose={() => setBranchModalVisible(false)}
-      />
-
-      <PeriodPickerModal
-        visible={periodModalVisible}
-        period={period}
-        onClose={() => setPeriodModalVisible(false)}
-        onSelect={(key) => {
-          setPeriodModalVisible(false);
-          handlePeriodSelect(key);
-        }}
-      />
-
-
-      {loading ? (
-        <View className="items-center py-20">
-          <Text className="text-sm text-muted">Loading...</Text>
-        </View>
-      ) : (
-        <View className="gap-4 px-5 pb-10 pt-4">
-          <ReadyOrdersCard readyOrders={readyOrders} />
-
-          <SalesOverviewChart
-            granularity={granularity}
-            dailySummaries={dailySummaries}
-            containerWidth={chartContainerWidth}
-            onLayout={setChartContainerWidth}
-          />
-
-          <BreakdownCard
-            summary={summary}
-            grossProfit={grossProfit}
-            totalExpenses={totalExpenses}
-            compareLabel={compareLabel}
-          />
-
-          <LoadsCard
-            totalLoads={totalLoads}
-            orderCount={loadsOrderCount}
-            breakdown={loadsBreakdown}
-            itemsMap={itemsMap}
-          />
-
-          <OrderTypesCard ordersByFulfillment={ordersByFulfillment} />
-
-          <SalesByItemsCard salesByItem={salesByItem} itemsMap={itemsMap} />
-
-          <PaymentTypesCard salesByPayment={salesByPayment} />
-
-          <TouchableOpacity
-            onPress={() => router.push('/reconciliation')}
-            activeOpacity={0.8}
-            className="flex-row items-center justify-between rounded-3xl bg-white px-5 py-4 dark:bg-card-dark"
-            style={{
-              shadowColor: '#1A1F3C',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.07,
-              shadowRadius: 16,
-              elevation: 3,
-            }}
-          >
-            <View>
-              <Text className="text-sm font-bold text-ink dark:text-white">Reconciliation</Text>
-              <Text className="mt-0.5 text-xs text-muted">
-                Cash &amp; payment totals by date paid
+            <TouchableOpacity
+              onPress={() => setPeriodModalVisible(true)}
+              activeOpacity={0.8}
+              className="mx-2 flex-1 items-center rounded-full bg-white/20 py-1.5"
+            >
+              <Text className="text-sm font-semibold text-white" numberOfLines={1}>
+                {periodLabel}
               </Text>
-            </View>
-            <IconSymbol name="chevron.right" size={16} color="#8A8FA8" />
-          </TouchableOpacity>
-        </View>
-      )}
-    </ScrollView>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => setOffset((o) => o + 1)}
+              disabled={!canGoForward}
+              activeOpacity={0.5}
+              className={`h-8 w-8 items-center justify-center ${!canGoForward ? 'opacity-30' : ''}`}
+            >
+              <Text className="text-2xl font-bold text-white">›</Text>
+            </TouchableOpacity>
+          </View>
+        </ScreenHeader>
+
+        <BranchPickerModal
+          visible={branchModalVisible}
+          onClose={() => setBranchModalVisible(false)}
+        />
+
+        <PeriodPickerModal
+          visible={periodModalVisible}
+          period={period}
+          onClose={() => setPeriodModalVisible(false)}
+          onSelect={(key) => {
+            setPeriodModalVisible(false);
+            handlePeriodSelect(key);
+          }}
+        />
+
+
+        {errorMessage ? (
+          <ErrorState message={errorMessage} onRetry={retry} />
+        ) : (
+          // Each card shows a skeleton until its data for the selected period
+          // and branch arrives, so cards fill in one by one.
+          <View className="gap-4 px-5 pb-10 pt-4">
+            {ready.readyOrders ? <ReadyOrdersCard readyOrders={readyOrders} /> : <SkeletonCard hero lines={2} />}
+
+            {ready.summary ? (
+              <>
+                <SalesOverviewChart
+                  granularity={granularity}
+                  dailySummaries={dailySummaries}
+                  containerWidth={chartContainerWidth}
+                  onLayout={setChartContainerWidth}
+                />
+
+                <BreakdownCard
+                  summary={summary}
+                  grossProfit={grossProfit}
+                  totalExpenses={totalExpenses}
+                  compareLabel={compareLabel}
+                />
+              </>
+            ) : (
+              <>
+                <SkeletonCard lines={4} />
+                <SkeletonCard lines={8} />
+              </>
+            )}
+
+            {ready.loads ? (
+              <>
+                <LoadsCard
+                  totalLoads={totalLoads}
+                  orderCount={loadsOrderCount}
+                  breakdown={loadsBreakdown}
+                  itemsMap={itemsMap}
+                />
+
+                <OrderTypesCard ordersByFulfillment={ordersByFulfillment} />
+              </>
+            ) : (
+              <SkeletonCard hero lines={3} />
+            )}
+
+            {ready.salesByItem ? (
+              <SalesByItemsCard salesByItem={salesByItem} itemsMap={itemsMap} />
+            ) : (
+              <SkeletonCard lines={3} />
+            )}
+
+            {ready.salesByPayment ? <PaymentTypesCard salesByPayment={salesByPayment} /> : <SkeletonCard lines={3} />}
+
+            <TouchableOpacity
+              onPress={() => router.push('/reconciliation')}
+              activeOpacity={0.8}
+              className="flex-row items-center justify-between rounded-3xl bg-white px-5 py-4 dark:bg-card-dark"
+              style={{
+                shadowColor: '#1A1F3C',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.07,
+                shadowRadius: 16,
+                elevation: 3,
+              }}
+            >
+              <View>
+                <Text className="text-sm font-bold text-ink dark:text-white">Reconciliation</Text>
+                <Text className="mt-0.5 text-xs text-muted">
+                  Cash &amp; payment totals by date paid
+                </Text>
+              </View>
+              <IconSymbol name="chevron.right" size={16} color="#8A8FA8" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+      <UpdatingPill visible={updating && !refreshing && ready.summary} />
+    </View>
   );
 }

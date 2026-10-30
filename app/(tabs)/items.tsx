@@ -10,8 +10,11 @@ import {
 import { router } from "expo-router";
 
 import { BranchPickerModal } from "@/components/ui/branch-picker-modal";
+import { ErrorState } from "@/components/ui/error-state";
 import { FAB } from "@/components/ui/fab";
 import { ScreenHeader } from "@/components/ui/screen-header";
+import { Skeleton } from "@/components/ui/skeleton";
+import { UpdatingPill } from "@/components/ui/updating-pill";
 import { useAuth } from "@/context/auth-context";
 import { useBranch } from "@/context/branch-context";
 import { CategoryCard } from "@/features/catalog/components/category-card";
@@ -34,7 +37,11 @@ export default function CatalogScreen() {
   const [tab, setTab] = useState(0);
   const [branchModalVisible, setBranchModalVisible] = useState(false);
 
-  const { items, categories, loading } = useCatalog({ token, selectedBranch, loadBranches });
+  const { items, categories, loading, updating, errorMessage, retry } = useCatalog({
+    token,
+    selectedBranch,
+    loadBranches,
+  });
 
   const sections = (() => {
     const map = new Map<number | null, { title: string; sortOrder: number; items: typeof items }>();
@@ -90,9 +97,17 @@ export default function CatalogScreen() {
         onClose={() => setBranchModalVisible(false)}
       />
 
-      {loading && items.length === 0 && categories.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-muted">Loading...</Text>
+      {errorMessage ? (
+        <ErrorState message={errorMessage} onRetry={retry} />
+      ) : loading ? (
+        <View className="flex-row flex-wrap p-1.5">
+          {Array.from({ length: 6 }, (_, i) => (
+            <View key={i} className="m-1.5 gap-2 rounded-2xl bg-white p-4 dark:bg-card-dark" style={{ width: "46%" }}>
+              <Skeleton width={36} height={36} rounded={12} />
+              <Skeleton width="70%" height={12} />
+              <Skeleton width="40%" height={10} />
+            </View>
+          ))}
         </View>
       ) : tab === 0 ? (
         <SectionList
@@ -137,6 +152,7 @@ export default function CatalogScreen() {
         />
       )}
 
+      <UpdatingPill visible={updating && !loading && !errorMessage} />
       <FAB
         onPress={() => router.push(tab === 0 ? "/new-item" : "/new-category")}
       />

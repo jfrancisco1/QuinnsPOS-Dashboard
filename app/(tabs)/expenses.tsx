@@ -1,11 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, SectionList, Text, TouchableOpacity, View } from 'react-native';
 
 import { router } from 'expo-router';
 
 import { BranchPickerModal } from '@/components/ui/branch-picker-modal';
+import { ErrorState } from '@/components/ui/error-state';
 import { FAB } from '@/components/ui/fab';
 import { ScreenHeader } from '@/components/ui/screen-header';
+import { SkeletonCard, SkeletonList } from '@/components/ui/skeleton';
+import { UpdatingPill } from '@/components/ui/updating-pill';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
 import { ExpenseCategoryChart } from '@/features/expenses/components/expense-category-chart';
@@ -52,20 +55,26 @@ export default function ExpensesScreen() {
     searchQuery,
     setSearchQuery,
     loading,
+    updating,
     refreshing,
     onRefresh,
+    errorMessage,
+    retry,
   } = useExpenses({ token, selectedBranch, loadBranches });
 
-  const sections = expenses.reduce<{ title: string; data: Expense[] }[]>((acc, expense) => {
-    const label = fmtDate(expense.expense_date);
-    const existing = acc.find((s) => s.title === label);
-    if (existing) {
-      existing.data.push(expense);
-    } else {
-      acc.push({ title: label, data: [expense] });
+  // Grouped by expense_date; the (slow) date label is formatted once per day.
+  const sections = useMemo(() => {
+    const byDay = new Map<string, { title: string; data: Expense[] }>();
+    for (const expense of expenses) {
+      let section = byDay.get(expense.expense_date);
+      if (!section) {
+        section = { title: fmtDate(expense.expense_date), data: [] };
+        byDay.set(expense.expense_date, section);
+      }
+      section.data.push(expense);
     }
-    return acc;
-  }, []);
+    return Array.from(byDay.values());
+  }, [expenses]);
 
   const onChartLayout = useCallback((width: number) => setChartWidth(width), []);
 
@@ -126,14 +135,20 @@ export default function ExpensesScreen() {
         }}
       />
 
-      {loading && expenses.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-muted">Loading...</Text>
+      {errorMessage ? (
+        <ErrorState message={errorMessage} onRetry={retry} />
+      ) : loading ? (
+        <View className="gap-4 px-4 pt-4">
+          <SkeletonCard lines={1} />
+          <SkeletonList rows={5} />
         </View>
       ) : (
         <SectionList
           sections={sections}
           keyExtractor={(item) => String(item.id)}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={9}
           ListHeaderComponent={
             <View className="gap-4 px-4 pb-2 pt-4">
               <ExpenseSummaryRow total={total} count={count} />
@@ -157,6 +172,7 @@ export default function ExpensesScreen() {
         />
       )}
 
+      <UpdatingPill visible={updating && !refreshing && !loading && !errorMessage} />
       <FAB onPress={() => router.push('/new-expense')} />
     </View>
   );

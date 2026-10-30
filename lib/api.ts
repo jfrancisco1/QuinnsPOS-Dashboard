@@ -274,12 +274,41 @@ function isCacheable(path: string, options: RequestInit): boolean {
   return method === "GET" && !/[?&]search=/.test(path);
 }
 
+// Set only while readFromCache() is calling a get* function. Each get* calls
+// authFetch before its first await, so authFetch sees the flag synchronously.
+let cacheOnlyCall = false;
+
+/**
+ * Runs a get* function against the saved copy of its response instead of the
+ * network, so a screen can show last-known data while the live request runs.
+ * Resolves to null when nothing is saved for that request.
+ */
+export async function readFromCache<T>(
+  call: () => Promise<ApiResult<T>>,
+): Promise<Extract<ApiResult<T>, { ok: true }> | null> {
+  cacheOnlyCall = true;
+  let pending: Promise<ApiResult<T>>;
+  try {
+    pending = call();
+  } finally {
+    cacheOnlyCall = false;
+  }
+  const result = await pending;
+  return result.ok ? result : null;
+}
+
 async function authFetch<T>(
   token: string,
   path: string,
   options: RequestInit = {},
 ): Promise<ApiResult<T>> {
   const cacheable = isCacheable(path, options);
+  if (cacheOnlyCall) {
+    const cached = cacheable ? await readCachedResponse(path) : null;
+    return cached
+      ? { ok: true, data: cached.data as T }
+      : { ok: false, error: { message: "Not cached", status: 0 } };
+  }
   for (let attempt = 0; ; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 
 import { getOrders, type Branch, type Order } from '@/lib/api';
+import { cacheThenNetwork } from '@/lib/cache-then-network';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 import { useReconnectKey } from '@/lib/network-status';
@@ -27,6 +28,12 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [focusTick, setFocusTick] = useState(0);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  // Selection whose orders are on screen (from the saved copy or the server),
+  // and the last load error, tagged with its request.
+  const [shownKey, setShownKey] = useState<string | null>(null);
+  const [error, setError] = useState<{ key: string; message: string } | null>(null);
   const reconnectKey = useReconnectKey();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,9 +66,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     }, [token, loadBranches]),
   );
 
-  const requestKey = JSON.stringify([
-    focusTick,
-    reconnectKey,
+  const selectionKey = JSON.stringify([
     token,
     period,
     offset,
@@ -71,7 +76,8 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     debouncedSearch,
     statusTab,
   ]);
-  const loading = loadedRequestKey !== requestKey;
+  const requestKey = JSON.stringify([focusTick, reconnectKey, refreshTick, selectionKey]);
+  const updating = loadedRequestKey !== requestKey;
 
   useEffect(() => {
     if (!token) return;
@@ -100,24 +106,39 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
     nextCursorRef.current = null;
     hasMoreRef.current = false;
 
-    getOrders(token, fetchParamsRef.current).then((result) => {
-      if (cancelled) return;
-      if (result.ok) {
-        const sorted = [...result.data.data].sort(
+    const params = fetchParamsRef.current;
+    cacheThenNetwork(
+      () => getOrders(token, params),
+      (page) => {
+        if (cancelled) return;
+        const sorted = [...page.data].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
         const filtered = statusTab === 1 ? sorted.filter((o) => o.paymentStatus !== 'unpaid') : sorted;
         setAllOrders(filtered);
-        nextCursorRef.current = result.data.nextCursor;
-        hasMoreRef.current = result.data.hasMore;
-      }
+        setShownKey(selectionKey);
+        nextCursorRef.current = page.nextCursor;
+        hasMoreRef.current = page.hasMore;
+      },
+    ).then((result) => {
+      if (cancelled) return;
+      // Tagged with the request, so a retry or refocus hides the error while it loads again.
+      if (!result.ok) setError({ key: requestKey, message: result.error.message });
       setLoadedRequestKey(requestKey);
+      setRefreshing(false);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [requestKey, focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
+  }, [requestKey, selectionKey, focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setRefreshTick((t) => t + 1);
+  }, []);
+
+  const retry = useCallback(() => setRefreshTick((t) => t + 1), []);
 
   async function loadMore() {
     if (!token || !hasMoreRef.current || !nextCursorRef.current || loadingMoreRef.current) return;
@@ -159,9 +180,17 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   const canGoForward = period !== 'custom' && offset < 0;
   const canGoBack = period !== 'custom';
 
+  const showingCurrent = shownKey === selectionKey;
+
   return {
     orders: allOrders,
-    loading,
+    // No orders for this selection yet (the list may still hold the previous one's).
+    loading: !showingCurrent,
+    updating,
+    refreshing,
+    onRefresh,
+    errorMessage: error?.key === requestKey && !showingCurrent ? error.message : null,
+    retry,
     loadingMore,
     loadMore,
     statusTab,

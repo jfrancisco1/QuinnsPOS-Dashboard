@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
+  RefreshControl,
   SectionList,
   Text,
   TextInput,
@@ -14,9 +16,12 @@ import { router } from "expo-router";
 
 import { Badge } from "@/components/ui/badge";
 import { BranchPickerModal } from "@/components/ui/branch-picker-modal";
+import { ErrorState } from "@/components/ui/error-state";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { ListItem } from "@/components/ui/list-item";
 import { ScreenHeader } from "@/components/ui/screen-header";
+import { SkeletonList } from "@/components/ui/skeleton";
+import { UpdatingPill } from "@/components/ui/updating-pill";
 import { useAuth } from "@/context/auth-context";
 import { useBranch } from "@/context/branch-context";
 import { useOrders } from "@/features/orders/hooks/use-orders";
@@ -38,6 +43,11 @@ export default function OrdersScreen() {
   const {
     orders,
     loading,
+    updating,
+    refreshing,
+    onRefresh,
+    errorMessage,
+    retry,
     loadingMore,
     loadMore,
     statusTab,
@@ -53,25 +63,30 @@ export default function OrdersScreen() {
     setSearchQuery,
   } = useOrders({ token, selectedBranch, loadBranches });
 
-  const sections = useMemo(
-    () =>
-      orders.reduce<{ title: string; data: Order[] }[]>((acc, order) => {
-        const label = new Date(order.createdAt).toLocaleDateString("en-PH", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
-        const existing = acc.find((s) => s.title === label);
-        if (existing) {
-          existing.data.push(order);
-        } else {
-          acc.push({ title: label, data: [order] });
-        }
-        return acc;
-      }, []),
-    [orders],
-  );
+  // Group by local day. Formatting a date label is slow on Hermes, so it's
+  // done once per day rather than once per order.
+  const sections = useMemo(() => {
+    const byDay = new Map<string, { title: string; data: Order[] }>();
+    for (const order of orders) {
+      const date = new Date(order.createdAt);
+      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      let section = byDay.get(dayKey);
+      if (!section) {
+        section = {
+          title: date.toLocaleDateString("en-PH", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }),
+          data: [],
+        };
+        byDay.set(dayKey, section);
+      }
+      section.data.push(order);
+    }
+    return Array.from(byDay.values());
+  }, [orders]);
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: { title: string } }) => (
@@ -214,10 +229,10 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      {loading && orders.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-sm text-muted">Loading...</Text>
-        </View>
+      {errorMessage ? (
+        <ErrorState message={errorMessage} onRetry={retry} />
+      ) : loading ? (
+        <SkeletonList rows={7} />
       ) : (
         <SectionList
           sections={sections}
@@ -226,6 +241,11 @@ export default function OrdersScreen() {
           renderItem={renderItem}
           onEndReached={loadMore}
           onEndReachedThreshold={0.3}
+          initialNumToRender={12}
+          maxToRenderPerBatch={12}
+          windowSize={9}
+          removeClippedSubviews
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View className="items-center py-20">
               <Text className="text-sm text-muted">No orders found</Text>
@@ -234,12 +254,13 @@ export default function OrdersScreen() {
           ListFooterComponent={
             loadingMore ? (
               <View className="items-center py-4">
-                <Text className="text-sm text-muted">Loading more...</Text>
+                <ActivityIndicator size="small" color="#8A8FA8" />
               </View>
             ) : null
           }
         />
       )}
+      <UpdatingPill visible={updating && !refreshing && !loading && !errorMessage} />
     </View>
   );
 }

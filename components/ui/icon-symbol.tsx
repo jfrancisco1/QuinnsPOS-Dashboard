@@ -31,6 +31,7 @@ const MAPPING = {
   'person.circle.fill': 'account-circle',
   'arrow.triangle.2.circlepath': 'sync',
   'wifi.slash': 'wifi-off',
+  'exclamationmark.triangle': 'warning-amber',
   'checkmark.circle.fill': 'check-circle',
   'circle': 'radio-button-unchecked',
   'star.fill': 'star',
