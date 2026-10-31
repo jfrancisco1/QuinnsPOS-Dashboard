@@ -250,6 +250,10 @@ function delay(ms: number): Promise<void> {
 // normal burst. Back off and retry a few times before surfacing the error.
 const MAX_RATE_LIMIT_RETRIES = 3;
 
+// Only short waits are retried. A long Retry-After (e.g. the daily limit on
+// upgrade requests) is returned right away so the screen can show the message.
+const MAX_RATE_LIMIT_WAIT_MS = 5_000;
+
 // Without a timeout, a request on a dead connection can hang indefinitely
 // instead of failing over to the offline cache.
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -327,8 +331,10 @@ async function authFetch<T>(
       if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
         const retryAfter = Number(response.headers.get("Retry-After"));
         const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** attempt;
-        await delay(waitMs);
-        continue;
+        if (waitMs <= MAX_RATE_LIMIT_WAIT_MS) {
+          await delay(waitMs);
+          continue;
+        }
       }
 
       reportLiveResponse();
@@ -429,6 +435,8 @@ export type Tenant = {
   on_trial: boolean;
   trial_ends_at: string | null;
   billing_cycle: "monthly" | "yearly" | null;
+  // The shop's latest "I've paid" we haven't checked yet; null once recorded or dismissed.
+  pending_payment: { amount: number; method: PaymentMethod; reference: string; paid_on: string } | null;
   paid_until: string | null;
   features: string[];
   limits: TenantLimits;
@@ -952,6 +960,55 @@ export type UpgradeRequestPayload = {
 // changes once the payment is recorded. Limited to 3 per day (429 after).
 export function requestUpgrade(token: string, data: UpgradeRequestPayload) {
   return authFetch<{ message: string }>(token, "/upgrade-request", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export type PaymentMethod = "gcash" | "bank";
+
+export type PaymentSubmission = {
+  id: number;
+  plan: "starter" | "pro";
+  billing_cycle: "monthly" | "yearly";
+  amount: number;
+  method: PaymentMethod;
+  reference: string;
+  // "Y-m-d"
+  paid_on: string;
+  status: "pending" | "recorded" | "dismissed";
+  created_at: string;
+};
+
+export type PaymentInfo = {
+  plan: "starter" | "pro";
+  billing_cycle: "monthly" | "yearly";
+  // Pesos for one period, extra branches included.
+  amount: number;
+  gcash: { number: string; name: string | null; qr_url: string | null } | null;
+  bank_details: string | null;
+  // The shop's latest "I've paid" still waiting for us to check it.
+  pending_submission: PaymentSubmission | null;
+};
+
+// What to pay for a plan and cycle, and how (GCash QR and number, bank).
+export function getPaymentInfo(token: string, plan: "starter" | "pro", billingCycle: "monthly" | "yearly") {
+  const params = new URLSearchParams({ plan, billing_cycle: billingCycle });
+  return authFetch<PaymentInfo>(token, `/billing/payment-info?${params.toString()}`);
+}
+
+export type PaymentSubmissionPayload = {
+  plan: "starter" | "pro";
+  billing_cycle: "monthly" | "yearly";
+  amount: number;
+  method: PaymentMethod;
+  reference: string;
+};
+
+// "I've paid": we check the reference and switch the plan once it's confirmed.
+// Limited to 5 per day (429 after).
+export function submitPayment(token: string, data: PaymentSubmissionPayload) {
+  return authFetch<{ message: string; data: PaymentSubmission }>(token, "/billing/payment-submissions", {
     method: "POST",
     body: JSON.stringify(data),
   });

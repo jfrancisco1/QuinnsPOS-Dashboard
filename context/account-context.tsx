@@ -74,6 +74,8 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const freeNoticePending =
     tenant != null &&
     !hasFullApp &&
+    // A paid shop that lapsed isn't "after the trial"; the payment banner covers it.
+    tenant.plan === 'free' &&
     !tenant.on_trial &&
     tenant.trial_ends_at != null &&
     !current?.freeNoticeSeen;

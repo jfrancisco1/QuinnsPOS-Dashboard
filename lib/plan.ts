@@ -45,6 +45,39 @@ export function trialDaysLeft(tenant: Tenant, now: Date = new Date()): number {
   return Math.max(0, Math.ceil(ms / 86_400_000));
 }
 
+// A paid shop keeps its plan this many days past paid_until, then the API gives it
+// the Free limits until the payment is recorded (API config plans.grace_days).
+export const GRACE_DAYS = 7;
+
+export type PaymentStatus =
+  // paid_until has passed; the plan keeps working through lastDay.
+  | { kind: 'overdue'; lastDay: Date; graceDaysLeft: number }
+  // Past the grace period: the API already applies the Free limits.
+  | { kind: 'lapsed' };
+
+// paid_until is a plain "Y-m-d" date: read it as local midnight, not UTC.
+function parseDateOnly(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+// Whether a paid shop owes its payment, or null when it's paid up (or not on a paid plan).
+export function paymentStatus(tenant: Tenant, now: Date = new Date()): PaymentStatus | null {
+  if (tenant.on_trial || !tenant.paid_until || !(tenant.plan in PLAN_PRICES)) return null;
+  if (tenant.effective_plan === 'free') return { kind: 'lapsed' };
+
+  const lastDay = parseDateOnly(tenant.paid_until);
+  lastDay.setDate(lastDay.getDate() + GRACE_DAYS);
+  const graceDaysLeft = Math.round((lastDay.getTime() - startOfDay(now).getTime()) / 86_400_000);
+  if (graceDaysLeft >= GRACE_DAYS) return null;
+
+  return { kind: 'overdue', lastDay, graceDaysLeft: Math.max(0, graceDaysLeft) };
+}
+
 export function planLabel(plan: string): string {
   return plan.charAt(0).toUpperCase() + plan.slice(1);
 }

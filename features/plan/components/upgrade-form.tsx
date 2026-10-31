@@ -16,6 +16,11 @@ import {
 
 type Props = {
   token: string | null;
+  // The plan screen owns the choice so the payment card can quote the same plan.
+  plan: PaidPlan;
+  cycle: BillingCycle;
+  onPlanChange: (plan: PaidPlan) => void;
+  onCycleChange: (cycle: BillingCycle) => void;
 };
 
 const PLAN_PERKS: Record<PaidPlan, string> = {
@@ -23,10 +28,8 @@ const PLAN_PERKS: Record<PaidPlan, string> = {
   pro: `Everything in Starter, up to 3 branches (+${formatPeso(EXTRA_BRANCH_MONTHLY)}/month each extra) and unlimited admins.`,
 };
 
-export function UpgradeForm({ token }: Props) {
+export function UpgradeForm({ token, plan, cycle, onPlanChange: setPlan, onCycleChange: setCycle }: Props) {
   const { showToast } = useToast();
-  const [plan, setPlan] = useState<PaidPlan>('starter');
-  const [cycle, setCycle] = useState<BillingCycle>('monthly');
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -117,7 +120,8 @@ export function UpgradeForm({ token }: Props) {
           </Text>
         </TouchableOpacity>
         <Text className="text-xs text-muted">
-          We&apos;ll email you how to pay and switch your plan as soon as we receive it.
+          We&apos;ll email you how to pay. Already paid? Tap I&apos;ve paid on this screen and we&apos;ll switch your
+          plan as soon as it&apos;s confirmed.
         </Text>
       </View>
     </Card>
