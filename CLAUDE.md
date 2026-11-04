@@ -9,10 +9,20 @@ npm start          # Start Expo dev server (scan QR to open on device)
 npm run android    # Launch on Android emulator
 npm run ios        # Launch on iOS simulator
 npm run web        # Launch web version in browser
-npm run lint       # Run ESLint
+npm run lint       # Run ESLint (must have 0 errors — runs in CI)
+npm run typecheck  # tsc --noEmit (runs in CI)
+npm test           # Jest unit tests (runs in CI)
 ```
 
-No test suite is configured yet.
+Unit tests (Jest, `jest-expo`) live in `__tests__/` folders next to the code (`*.test.ts`) and run
+in the Asia/Manila time zone with an in-memory AsyncStorage. Never put test files under `app/` —
+expo-router would treat them as screens. Checks run on GitHub Actions (`.github/workflows/checks.yml`):
+type-check, lint and tests on every PR into, and push to, `develop`/`master`. Builds run on EAS
+Workflows (`.eas/workflows/`): every push to `develop` builds a preview APK, which uses EAS build
+quota; every push to `master` builds a production .aab. The Play upload job is off until the Play
+service account and production access are set up (see the header of `.eas/workflows/release.yml`).
+The EAS build doesn't wait for the GitHub checks, so branch protection on `master` (require a PR
+and the "Type-check, lint and test" check) is what stops a broken release — see docs/release.md.
 
 ## Architecture
 

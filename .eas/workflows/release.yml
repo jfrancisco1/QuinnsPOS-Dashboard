@@ -1,0 +1,35 @@
+# Every push to `master`: a Play bundle (.aab, `production` profile). Download it from the
+# build page on expo.dev.
+#
+# The automatic upload to Google Play is OFF for now: the Play service account key and
+# production access aren't set up yet. Upload the .aab by hand in Play Console. To turn the
+# upload back on, add this job under `jobs:` (see docs/release.md):
+#
+#   submit_play:
+#     name: Upload to Play production
+#     needs: [build_aab]
+#     type: submit
+#     params:
+#       build_id: ${{ needs.build_aab.outputs.build_id }}
+#       profile: production
+#
+# Type-check, lint and tests run on GitHub Actions (.github/workflows/checks.yml), not here,
+# and this build doesn't wait for them. Branch protection on `master` (PR + the
+# "Type-check, lint and test" check) is what keeps a broken commit from being built.
+#
+# Bump `version` in app.json before merging a release. versionCode is incremented by EAS
+# (`appVersionSource: "remote"` + `autoIncrement`).
+name: Dashboard release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build_aab:
+    name: Build Play bundle
+    type: build
+    params:
+      platform: android
+      profile: production

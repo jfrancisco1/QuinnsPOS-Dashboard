@@ -1,0 +1,21 @@
+# Every push to `develop`: an installable APK (`preview-android` profile) for testing.
+# Install it from the build page on expo.dev. Each run uses EAS build quota.
+#
+# Type-check, lint and tests run on GitHub Actions (.github/workflows/checks.yml), not here.
+# This build doesn't wait for them.
+#
+# android/ is gitignored, so EAS runs prebuild from app.json on every build.
+name: Dashboard preview APK
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build_apk:
+    name: Build preview APK
+    type: build
+    params:
+      platform: android
+      profile: preview-android
