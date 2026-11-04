@@ -1,6 +1,10 @@
-# Every push to `master`: checks, a Play bundle (.aab, `production` profile), then upload to
+# Every push to `master`: a Play bundle (.aab, `production` profile), then upload to
 # Google Play's production track. It goes live once Google's review passes — test the
 # preview APK from `develop` before merging.
+#
+# Type-check, lint and tests run on GitHub Actions (.github/workflows/checks.yml), not here,
+# and this build doesn't wait for them. Branch protection on `master` (PR + the
+# "Type-check, lint and test" check) is what keeps a broken commit from being released.
 #
 # Bump `version` in app.json before merging a release. versionCode is incremented by EAS
 # (`appVersionSource: "remote"` + `autoIncrement`). The upload needs the Google service
@@ -13,21 +17,8 @@ on:
       - master
 
 jobs:
-  checks:
-    name: Type-check, lint and test
-    steps:
-      - uses: eas/checkout
-      - uses: eas/install_node_modules
-      - name: Type-check
-        run: npm run typecheck
-      - name: Lint
-        run: npm run lint
-      - name: Unit tests
-        run: npm test -- --ci
-
   build_aab:
     name: Build Play bundle
-    needs: [checks]
     type: build
     params:
       platform: android

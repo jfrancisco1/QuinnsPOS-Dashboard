@@ -2,24 +2,33 @@
 
 Package: `com.jfrancisco2.quinnsposdashboard`
 
-## Automated (EAS Workflows)
+## Automated (GitHub Actions + EAS Workflows)
 
-Checks, builds and Play uploads run on Expo's servers, triggered by GitHub. The workflow
-files are in `.eas/workflows/` (next to `eas.json`).
+Checks run on **GitHub Actions** (`.github/workflows/checks.yml`). Builds and Play uploads
+run on **EAS Workflows** (Expo's servers, `.eas/workflows/`, next to `eas.json`). GitHub
+triggers both.
 
 ```
 feature/*  ──PR──▶  develop  ──merge──▶  master
              checks   preview APK         Play production
 ```
 
-| Branch | What runs |
-|---|---|
-| PR into `develop` / `master` | Type-check + lint + unit tests (`checks.yml`) — no build |
-| `develop` | Checks → **preview APK** for testing (`preview-android` profile, `preview.yml`) |
-| `master` | Checks → **production .aab** → upload to Play **production** (`release.yml`); live after Google's review |
+| Event | GitHub Actions | EAS |
+|---|---|---|
+| PR into `develop` / `master` | Type-check + lint + unit tests | — |
+| Push to `develop` | Type-check + lint + unit tests | **preview APK** (`preview-android` profile, `preview.yml`) |
+| Push to `master` | Type-check + lint + unit tests | **production .aab** → upload to Play **production** (`release.yml`); live after Google's review |
 
-A failed check stops the build. Runs show on expo.dev → **jfrancisco2** →
-**QuinnsPOS-Dashboard** → *Workflows*.
+Check runs show on the PR and in the repo's *Actions* tab. Build runs show on expo.dev →
+**jfrancisco2** → **QuinnsPOS-Dashboard** → *Workflows*.
+
+**The EAS build doesn't wait for GitHub.** A push to `master` starts the release build even
+when the checks on that commit fail. Branch protection on `master` is what stops a broken
+release: require a pull request and the **Type-check, lint and test** status check before
+merging (see *One-time setup*).
+
+**Every push to `develop` builds an APK** and uses EAS build quota, so batch work on a
+feature branch and merge it once instead of pushing small commits straight to `develop`.
 
 ### Unit tests
 `npm test` runs Jest on the app's logic — no screens:
@@ -34,13 +43,18 @@ A failed check stops the build. Runs show on expo.dev → **jfrancisco2** →
    (`appVersionSource: "remote"` + `autoIncrement`). `android/` is gitignored — EAS runs
    prebuild itself.
 2. Push/merge to `develop` → install the preview APK from expo.dev on a phone and check it.
-3. Merge `develop` into `master` → the `.aab` is built and uploaded to Play's production
-   track. It goes live once Google's review passes (or when you press *Publish*, if
-   *Managed publishing* is on in Play Console).
+3. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
+   passes. The `.aab` is built and uploaded to Play's production track. It goes live once
+   Google's review passes (or when you press *Publish*, if *Managed publishing* is on in
+   Play Console).
 
 ### One-time setup
-- **Link GitHub:** expo.dev → project **QuinnsPOS-Dashboard** (owner `jfrancisco2`) →
-  *Project settings* → *GitHub* → connect `jfrancisco1/QuinnsPOS-Dashboard`.
+- **Branch protection:** GitHub → repo *Settings* → *Branches* (or *Rules*) → protect
+  `master`: require a pull request before merging, and require the status check
+  **Type-check, lint and test**. The check appears in the list after it has run once.
+- **Link GitHub to EAS:** expo.dev → project **QuinnsPOS-Dashboard** (owner `jfrancisco2`) →
+  *Project settings* → *GitHub* → connect `jfrancisco1/QuinnsPOS-Dashboard`. Until this is
+  done, no EAS build runs.
 - **Play uploads:** store the service account key on EAS (never commit it):
   ```bash
   eas credentials -p android   # → production → Google Service Account → upload key
@@ -48,8 +62,12 @@ A failed check stops the build. Runs show on expo.dev → **jfrancisco2** →
   Until then, `release.yml` still builds the `.aab`; only the upload job fails. The key on
   EAS is also what `npm run deploy:android` / `submit:android` use.
 - **Production access:** uploads to the production track only work once the app has
-  production access in Play Console (see *First release* below).- **EAS CLI 27+** (`npm i -g eas-cli@latest`) — older versions can't validate workflows:
-  `eas workflow:validate .eas/workflows/release.yml`.
+  production access in Play Console (see *First release* below).
+- **Validating EAS workflow files:** use the latest CLI. Older global installs fail with
+  "reading 'const'":
+  ```bash
+  npx -y eas-cli@latest workflow:validate .eas/workflows/release.yml
+  ```
 
 ---
 

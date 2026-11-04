@@ -1,0 +1,35 @@
+# Type-check, lint and unit-test the dashboard on GitHub Actions.
+# Runs on pull requests into develop/master and on pushes to them. Builds (preview APK,
+# Play release) run on EAS — see .eas/workflows/ and docs/release.md.
+#
+# Branch flow: feature/* → develop (preview APK) → master (Play release).
+name: Dashboard checks
+
+on:
+  pull_request:
+    branches: [develop, master]
+  push:
+    branches: [develop, master]
+
+concurrency:
+  group: dashboard-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Type-check, lint and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Type-check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test -- --ci
