@@ -1,0 +1,42 @@
+# Every push to `master`: checks, a Play bundle (.aab, `production` profile), then upload to
+# Google Play's production track. It goes live once Google's review passes — test the
+# preview APK from `develop` before merging.
+#
+# Bump `version` in app.json before merging a release. versionCode is incremented by EAS
+# (`appVersionSource: "remote"` + `autoIncrement`). The upload needs the Google service
+# account key stored on EAS — see docs/release.md.
+name: Dashboard release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  checks:
+    name: Type-check, lint and test
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Type-check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test -- --ci
+
+  build_aab:
+    name: Build Play bundle
+    needs: [checks]
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  submit_play:
+    name: Upload to Play production
+    needs: [build_aab]
+    type: submit
+    params:
+      build_id: ${{ needs.build_aab.outputs.build_id }}
+      profile: production

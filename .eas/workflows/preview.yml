@@ -1,0 +1,31 @@
+# Every push to `develop`: checks, then an installable APK (`preview-android` profile) for
+# testing. Install it from the build page on expo.dev.
+#
+# android/ is gitignored, so EAS runs prebuild from app.json on every build.
+name: Dashboard preview APK
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  checks:
+    name: Type-check, lint and test
+    steps:
+      - uses: eas/checkout
+      - uses: eas/install_node_modules
+      - name: Type-check
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test -- --ci
+
+  build_apk:
+    name: Build preview APK
+    needs: [checks]
+    type: build
+    params:
+      platform: android
+      profile: preview-android

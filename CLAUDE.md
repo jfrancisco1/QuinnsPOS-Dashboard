@@ -9,10 +9,16 @@ npm start          # Start Expo dev server (scan QR to open on device)
 npm run android    # Launch on Android emulator
 npm run ios        # Launch on iOS simulator
 npm run web        # Launch web version in browser
-npm run lint       # Run ESLint
+npm run lint       # Run ESLint (must have 0 errors — runs in CI)
+npm run typecheck  # tsc --noEmit (runs in CI)
+npm test           # Jest unit tests (runs in CI)
 ```
 
-No test suite is configured yet.
+Unit tests (Jest, `jest-expo`) live in `__tests__/` folders next to the code (`*.test.ts`) and run
+in the Asia/Manila time zone with an in-memory AsyncStorage. Never put test files under `app/` —
+expo-router would treat them as screens. CI (EAS Workflows, `.eas/workflows/`) type-checks, lints and
+tests every PR. Every push to `develop` builds a preview APK for testing; every push to `master`
+builds a production .aab and uploads it to the Play production track — see docs/release.md.
 
 ## Architecture
 
