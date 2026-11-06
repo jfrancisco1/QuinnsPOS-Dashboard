@@ -12,15 +12,14 @@ feature/*  ──PR──▶  develop  ──merge──▶  master
              checks   preview APK         production .aab
 ```
 
-> **Play upload is off for now.** `release.yml` builds the `.aab` but doesn't upload it,
-> because the Play service account key and production access aren't set up yet. Upload the
-> `.aab` by hand (see *First release*). To turn the upload on, see *Turning on Play uploads*.
+> **Every merge into `master` goes to Play production.** `release.yml` builds the `.aab`
+> and uploads it to the production track with the service account key stored on EAS.
 
 | Event | GitHub Actions | EAS |
 |---|---|---|
 | PR into `develop` / `master` | Type-check + lint + unit tests | — |
 | Push to `develop` | Type-check + lint + unit tests | **preview APK** (`preview-android` profile, `preview.yml`) |
-| Push to `master` | Type-check + lint + unit tests | **production .aab** (`release.yml`) — no Play upload yet |
+| Push to `master` | Type-check + lint + unit tests | **production .aab** + upload to Play production (`release.yml`) |
 
 Check runs show on the PR and in the repo's *Actions* tab. Build runs show on expo.dev →
 **jfrancisco2** → **QuinnsPOS-Dashboard** → *Workflows*.
@@ -47,10 +46,9 @@ feature branch and merge it once instead of pushing small commits straight to `d
    prebuild itself.
 2. Push/merge to `develop` → install the preview APK from expo.dev on a phone and check it.
 3. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
-   passes. The `.aab` is built on EAS. Download it from expo.dev and upload it in Play
-   Console. Once Play uploads are on, it's uploaded to the production track automatically
-   and goes live once Google's review passes (or when you press *Publish*, if *Managed
-   publishing* is on in Play Console).
+   passes. The `.aab` is built on EAS and uploaded to the production track automatically.
+   It goes live once Google's review passes (or when you press *Publish*, if *Managed
+   publishing* is on in Play Console). Add release notes in Play Console if you want.
 
 ### One-time setup
 - **Branch protection:** GitHub → repo *Settings* → *Branches* (or *Rules*) → protect
@@ -59,17 +57,15 @@ feature branch and merge it once instead of pushing small commits straight to `d
 - **Link GitHub to EAS:** expo.dev → project **QuinnsPOS-Dashboard** (owner `jfrancisco2`) →
   *Project settings* → *GitHub* → connect `jfrancisco1/QuinnsPOS-Dashboard`. Until this is
   done, no EAS build runs.
-- **Play uploads:** store the service account key on EAS (never commit it):
-  ```bash
-  eas credentials -p android   # → production → Google Service Account → upload key
-  ```
-  The key on EAS is also what `npm run deploy:android` / `submit:android` use.
-- **Production access:** uploads to the production track only work once the app has
-  production access in Play Console (see *First release* below).
-- **Turning on Play uploads:** once the key and production access are in place, add the
-  `submit_play` job back to `.eas/workflows/release.yml` (it's in the file's header
-  comment) and validate the file. From then on, every merge into `master` goes to Play
-  production.
+- **Play uploads (done):** service account
+  `eas-play-upload@quinns-pos.iam.gserviceaccount.com` (Google Cloud project *Quinns POS*).
+  Its JSON key is stored on EAS: expo.dev → project → *Credentials* → Android → *Google
+  Service Account Key for Play Store Submissions* (or `eas credentials -p android`). Never
+  commit it. In Play Console → *Users and permissions* it has *View app information*,
+  *Release to production* and *Release apps to testing tracks*. The same key is what
+  `npm run deploy:android` / `submit:android` use.
+- **Turning off Play uploads:** remove the `submit_play` job from
+  `.eas/workflows/release.yml`; `master` then only builds the `.aab`.
 - **Validating EAS workflow files:** use the latest CLI. Older global installs fail with
   "reading 'const'":
   ```bash
