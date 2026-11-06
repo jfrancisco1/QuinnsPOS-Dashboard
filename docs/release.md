@@ -9,7 +9,8 @@ triggers both.
 
 ```
 feature/*  ──PR──▶  develop  ──merge──▶  master
-             checks   preview APK         production .aab
+             checks   preview APK         production .aab → Play
+                      (manual)
 ```
 
 > **Every merge into `master` goes to Play production.** `release.yml` builds the `.aab`
@@ -18,7 +19,8 @@ feature/*  ──PR──▶  develop  ──merge──▶  master
 | Event | GitHub Actions | EAS |
 |---|---|---|
 | PR into `develop` / `master` | Type-check + lint + unit tests | — |
-| Push to `develop` | Type-check + lint + unit tests | **preview APK** (`preview-android` profile, `preview.yml`) |
+| Push to `develop` | Type-check + lint + unit tests | — |
+| `npm run preview:android` | — | **preview APK** of `develop` (`preview-android` profile, `preview.yml`) |
 | Push to `master` | Type-check + lint + unit tests | **production .aab** + upload to Play production (`release.yml`) |
 
 Check runs show on the PR and in the repo's *Actions* tab. Build runs show on expo.dev →
@@ -29,8 +31,10 @@ when the checks on that commit fail. Branch protection on `master` is what stops
 release: require a pull request and the **Type-check, lint and test** status check before
 merging (see *One-time setup*).
 
-**Every push to `develop` builds an APK** and uses EAS build quota, so batch work on a
-feature branch and merge it once instead of pushing small commits straight to `develop`.
+**The preview APK is manual.** Pushes to `develop` don't build anything. When you want to
+test on a phone, run `npm run preview:android`: it builds the `develop` branch as it is on
+GitHub (push first), and each run uses EAS build quota. For another branch:
+`npx eas-cli@latest workflow:run .eas/workflows/preview.yml --ref <branch>`.
 
 ### Unit tests
 `npm test` runs Jest on the app's logic — no screens:
@@ -44,7 +48,8 @@ feature branch and merge it once instead of pushing small commits straight to `d
 1. On `develop`, bump `version` in `app.json`. `versionCode` is incremented by EAS
    (`appVersionSource: "remote"` + `autoIncrement`). `android/` is gitignored — EAS runs
    prebuild itself.
-2. Push/merge to `develop` → install the preview APK from expo.dev on a phone and check it.
+2. Push/merge to `develop`, run `npm run preview:android`, then install the APK from
+   expo.dev on a phone and check it.
 3. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
    passes. The `.aab` is built on EAS and uploaded to the production track automatically.
    It goes live once Google's review passes (or when you press *Publish*, if *Managed
