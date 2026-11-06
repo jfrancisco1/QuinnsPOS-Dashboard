@@ -4,6 +4,7 @@ import {
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Linking,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -15,6 +16,7 @@ import { router } from "expo-router";
 
 import { TextInput } from "@/components/ui/text-input";
 import { useAuth } from "@/context/auth-context";
+import { SIGNUP_URL } from "@/lib/plan";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -224,6 +226,23 @@ export default function LoginScreen() {
                 {isSubmitting ? "Signing in..." : "Sign in"}
               </Text>
             </TouchableOpacity>
+
+            {/* For owners who installed the app before signing up */}
+            <View className="mt-4 flex-row flex-wrap items-center justify-center">
+              <Text className="text-sm text-subtle dark:text-subtle-dark">
+                New to Quinns POS?{" "}
+              </Text>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(SIGNUP_URL)}
+                accessibilityRole="link"
+                activeOpacity={0.7}
+                hitSlop={8}
+              >
+                <Text className="text-sm font-semibold text-primary dark:text-primary-300">
+                  Start a free trial
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </ScrollView>
