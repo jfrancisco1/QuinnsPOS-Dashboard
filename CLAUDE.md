@@ -21,6 +21,7 @@ type-check, lint and tests on every PR into, and push to, `develop`/`master`. Bu
 Workflows (`.eas/workflows/`): the preview APK is manual only (Actions → "Dashboard preview APK" →
 Run workflow, or `npm run preview:android`; each run uses EAS build quota); every push to `master` builds a production .aab and uploads it to the Google Play production
 track (service account key stored on EAS — see docs/release.md).
+`develop` is the GitHub default branch (PRs target it); `master` is the release branch.
 The EAS build doesn't wait for the GitHub checks, so branch protection on `master` (require a PR
 and the "Type-check, lint and test" check) is what stops a broken release — see docs/release.md.
 

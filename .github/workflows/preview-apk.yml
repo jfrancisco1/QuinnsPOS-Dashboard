@@ -4,7 +4,7 @@
 # quota. Install the APK from expo.dev → Builds.
 #
 # Needs the repo secret EXPO_TOKEN (expo.dev → Account settings → Access tokens).
-# The "Run workflow" button only appears once this file is on the default branch (master).
+# The "Run workflow" button only appears for files on the repo's default branch (develop).
 name: Dashboard preview APK
 
 on:

@@ -23,6 +23,10 @@ feature/*  ──PR──▶  develop  ──merge──▶  master
 | *Run workflow* in Actions, or `npm run preview:android` | Starts the EAS run (`preview-apk.yml`) | **preview APK** of the chosen branch (`preview-android` profile, `preview.yml`) |
 | Push to `master` | Type-check + lint + unit tests | **production .aab** + upload to Play production (`release.yml`) |
 
+**`develop` is the repo's default branch** on GitHub, so new PRs target it and the
+*Run workflow* button reads workflows from it. The default branch doesn't decide what
+releases: only a push to `master` builds and uploads to Play.
+
 Check runs show on the PR and in the repo's *Actions* tab. Build runs show on expo.dev →
 **jfrancisco2** → **QuinnsPOS-Dashboard** → *Workflows*.
 
@@ -35,8 +39,8 @@ merging (see *One-time setup*).
 test on a phone, start it one of two ways (each run uses EAS build quota, and builds the
 branch as it is on GitHub, so push first):
 - **GitHub:** *Actions* → **Dashboard preview APK** → *Run workflow* → pick the branch
-  (`.github/workflows/preview-apk.yml`). Needs the `EXPO_TOKEN` repo secret, and the button
-  only shows once that file is on `master`.
+  (`.github/workflows/preview-apk.yml`). Needs the `EXPO_TOKEN` repo secret. GitHub only
+  shows *Run workflow* for files on the repo's default branch, which is `develop`.
 - **Terminal:** `npm run preview:android` builds `develop`. For another branch:
   `npx eas-cli@latest workflow:run .eas/workflows/preview.yml --ref <branch>`.
 
