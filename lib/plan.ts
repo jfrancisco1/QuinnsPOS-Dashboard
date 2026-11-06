@@ -16,11 +16,13 @@ export type BillingCycle = 'monthly' | 'yearly';
 
 export const STAFF_APP_URL =
   'https://play.google.com/store/apps/details?id=com.kheldiente.quinnlaundryapp';
-// Not published yet; screens show a "coming soon" note instead of a link.
-export const DRIVER_APP_URL: string | null = null;
+export const DRIVER_APP_URL =
+  'https://play.google.com/store/apps/details?id=com.kheldiente.quinndriverapp';
 // This app, for the logins of admins the owner adds.
 export const ADMIN_APP_URL =
   'https://play.google.com/store/apps/details?id=com.jfrancisco2.quinnsposdashboard';
+// The website's free-trial signup (#get-started opens the signup form on arrival).
+export const SIGNUP_URL = 'https://quinnspos.com/#get-started';
 
 export function formatPeso(amount: number): string {
   return `₱${amount.toLocaleString('en-US')}`;
