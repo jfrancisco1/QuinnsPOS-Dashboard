@@ -1,0 +1,32 @@
+# Start the EAS preview APK build from GitHub: Actions → "Dashboard preview APK" →
+# Run workflow → pick the branch (usually develop). The build itself runs on EAS
+# (.eas/workflows/preview.yml) from that branch as it is on GitHub, and uses EAS build
+# quota. Install the APK from expo.dev → Builds.
+#
+# Needs the repo secret EXPO_TOKEN (expo.dev → Account settings → Access tokens).
+# The "Run workflow" button only appears once this file is on the default branch (master).
+name: Dashboard preview APK
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: dashboard-preview-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  start_preview:
+    name: Start preview APK build on EAS
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Start EAS workflow
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: npx -y eas-cli@latest workflow:run .eas/workflows/preview.yml --ref "${{ github.ref_name }}" --non-interactive
