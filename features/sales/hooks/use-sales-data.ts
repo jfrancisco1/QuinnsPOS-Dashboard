@@ -9,6 +9,7 @@ import {
   getSalesByItem,
   getSalesByPaymentType,
   getSalesSummary,
+  clearResponseMemo,
   readFromCache,
   type ApiResult,
   type Branch,
@@ -25,7 +26,9 @@ import { computeCompareRange, computeDateRange, getPeriodLabel, type Period } fr
 import { takePendingDateRange } from '@/lib/date-range-store';
 import { useReconnectKey } from '@/lib/network-status';
 
-const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const PERIOD_SETTLE_MS = 250;
+
+const MONTHS_SHORT =['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 function formatSeriesLabel(label: string, groupBy: SalesSummary['group_by']): string {
   if (groupBy === 'day') return String(parseInt(label.split('-')[2], 10));
@@ -126,24 +129,29 @@ export function useSalesData({ token, selectedBranch }: Props) {
       setUpdating(true);
       setError(null);
 
-      Promise.all([
-        cacheThenNetwork(
-          () => getSalesSummary(token, 'custom', { from, to, branch_id: branchId, compare_from: compare?.from, compare_to: compare?.to }),
-          keyed<SalesSummary>((value) => setSummary({ key: value.key, data: { summary: value.data, compareLabel: compare?.label ?? null } })),
-        ),
-        cacheThenNetwork(() => getSalesByItem(token, 'custom', { from, to, branch_id: branchId }), keyed(setSalesByItem)),
-        cacheThenNetwork(() => getSalesByPaymentType(token, 'custom', { from, to, branch_id: branchId }), keyed(setSalesByPayment)),
-        cacheThenNetwork(() => getLoadsSummary(token, { from, to, branch_id: branchId }), keyed(setLoads)),
-        cacheThenNetwork(() => getReadyOrders(token, { branch_id: branchId }), keyed(setReadyOrders)),
-      ]).then(([summaryRes]) => {
-        if (cancelled) return;
-        if (!summaryRes.ok) setError({ key, data: summaryRes.error.message });
-        setUpdating(false);
-        setRefreshing(false);
-      });
+      // Wait a beat before loading so quick taps on the period arrows only load the period
+      // the owner stops on (each load is 5 requests against a 60/min limit).
+      const timer = setTimeout(() => {
+        Promise.all([
+          cacheThenNetwork(
+            () => getSalesSummary(token, 'custom', { from, to, branch_id: branchId, compare_from: compare?.from, compare_to: compare?.to }),
+            keyed<SalesSummary>((value) => setSummary({ key: value.key, data: { summary: value.data, compareLabel: compare?.label ?? null } })),
+          ),
+          cacheThenNetwork(() => getSalesByItem(token, 'custom', { from, to, branch_id: branchId }), keyed(setSalesByItem)),
+          cacheThenNetwork(() => getSalesByPaymentType(token, 'custom', { from, to, branch_id: branchId }), keyed(setSalesByPayment)),
+          cacheThenNetwork(() => getLoadsSummary(token, { from, to, branch_id: branchId }), keyed(setLoads)),
+          cacheThenNetwork(() => getReadyOrders(token, { branch_id: branchId }), keyed(setReadyOrders)),
+        ]).then(([summaryRes]) => {
+          if (cancelled) return;
+          if (!summaryRes.ok) setError({ key, data: summaryRes.error.message });
+          setUpdating(false);
+          setRefreshing(false);
+        });
+      }, PERIOD_SETTLE_MS);
 
       return () => {
         cancelled = true;
+        clearTimeout(timer);
       };
       // reconnectKey and refreshTick are refetch triggers, not read inside the callback.
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,6 +159,7 @@ export function useSalesData({ token, selectedBranch }: Props) {
   );
 
   const onRefresh = useCallback(() => {
+    clearResponseMemo();
     setRefreshing(true);
     setRefreshTick((t) => t + 1);
   }, []);
