@@ -1,0 +1,87 @@
+# Dashboard release: every push to `master` —
+#   1. bumps the app version (patch: 1.4.0 → 1.4.1) in app.json (scripts/bump-version.js),
+#   2. commits it back to master and tags it `vX.Y.Z`,
+#   3. starts a production build (.aab) on EAS and, once it finishes, submits it to the
+#      Google Play **production** track (eas.json → submit.production). Google still reviews it.
+#
+# versionCode is separate: EAS auto-increments it (eas.json → appVersionSource: "remote").
+# For a minor/major bump, run this workflow by hand (Actions → Dashboard release → Run workflow).
+# Put `[skip release]` in the commit message on master to push without releasing.
+#
+# Needs the EXPO_TOKEN repo secret (expo.dev → Account settings → Access tokens) and the Google
+# service account key stored on EAS — see docs/release.md. Branch protection on master must let
+# GitHub Actions push the bump commit, or the bump step fails and no build starts.
+name: Dashboard release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version part to bump
+        type: choice
+        options: [patch, minor, major]
+        default: patch
+
+# Releases take turns; a queued run checks out master again so it sees the previous bump.
+concurrency:
+  group: dashboard-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Bump version and build on EAS
+    if: ${{ !contains(github.event.head_commit.message, '[skip release]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Check EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the EXPO_TOKEN repo secret (expo.dev → Access tokens)."
+            exit 1
+          fi
+
+      - name: Bump version
+        id: bump
+        run: |
+          VERSION=$(node scripts/bump-version.js "${{ inputs.bump || 'patch' }}")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing dashboard v$VERSION"
+
+      - name: Commit and tag
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.json
+          git commit -m "chore: release v$VERSION [skip ci]"
+          git pull --rebase -q origin master
+          git tag "v$VERSION"
+          git push origin HEAD:master "v$VERSION"
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: Build and submit to Play production
+        run: eas build -p android --profile production --auto-submit --non-interactive --no-wait
