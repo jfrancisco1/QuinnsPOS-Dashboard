@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
 import { Card } from '@/components/ui/card';
+import { cashLeft as computeCashLeft } from '@/features/reconciliation/utils';
 import { fmtPeso } from '@/features/sales/utils';
 import { type ExpensesByCategory } from '@/lib/api';
 
@@ -16,7 +17,7 @@ type Props = {
 export function CashOnHandCard({ cashCollected, expenses, expensesError }: Props) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const expenseTotal = expenses?.total ?? 0;
-  const cashLeft = cashCollected - expenseTotal;
+  const cashLeft = computeCashLeft(cashCollected, expenseTotal);
   const breakdown = expenses?.breakdown ?? [];
 
   return (

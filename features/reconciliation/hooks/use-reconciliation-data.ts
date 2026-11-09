@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { paymentMethodKey } from '@/features/sales/utils';
+import { cashCollected } from '@/features/reconciliation/utils';
 import {
   getExpensesByCategory,
   getOrders,
@@ -198,9 +198,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   }
 
   const overallTotal = salesByPayment.reduce((sum, row) => sum + row.payment_amount, 0);
-  const cashCollected = salesByPayment
-    .filter((row) => paymentMethodKey(row.payment_method) === 'cash')
-    .reduce((sum, row) => sum + row.payment_amount, 0);
+  const cash = cashCollected(salesByPayment);
   const periodLabel = getPeriodLabel(period, offset, customFrom, customTo);
   const canGoForward = period !== 'custom' && offset < 0;
   const canGoBack = period !== 'custom';
@@ -212,7 +210,7 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
     salesByPayment,
     paidOrders,
     overallTotal,
-    cashCollected,
+    cashCollected: cash,
     expenses,
     expensesError,
     loading,

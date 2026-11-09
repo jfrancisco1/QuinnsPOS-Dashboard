@@ -52,6 +52,12 @@ branch as it is on GitHub, so push first):
 |---|---|
 | `lib/__tests__/date-helpers.test.ts` | Day/week/month/year ranges, the like-for-like comparison period, period labels, range checks |
 | `lib/__tests__/plan.test.ts` | Trial days left, overdue/lapsed payment status and the grace period, plan limits, peso and API date formatting |
+| `lib/__tests__/api-client.test.ts` | Login, bearer token, 401 sign-out, validation messages, offline fallback to the saved copy, report response shapes |
+| `lib/__tests__/api-rate-limit.test.ts` | Staying under the API's 60/min limit: reused GET answers, shared in-flight requests, writes and pull-to-refresh clearing them, 429 fallback |
+| `lib/__tests__/offline-cache.test.ts` | Saving/reading the last answers, oversize entries, eviction past the budget, clearing on logout |
+| `features/*/__tests__/utils.test.ts` | Order/payment labels and badges, peso formatting, add-on categories, usernames and suggested passwords, Reconciliation cash on hand |
+| `scripts/__tests__/bump-version.test.ts` | The release version bump (patch/minor/major, bad input) |
+| `scripts/__tests__/release-config.test.ts` | Release guards in `app.json`/`eas.json`: version format, package name, R8, versionCode auto-increment, `.aab` + production track |
 
 ### Releasing through the pipeline
 1. Push/merge to `develop`, start the preview APK (Actions → *Run workflow*, or
