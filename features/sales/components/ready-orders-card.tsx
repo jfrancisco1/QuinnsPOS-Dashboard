@@ -67,7 +67,7 @@ export function ReadyOrdersCard({ readyOrders }: Props) {
                 >
                   <View className="flex-1 pr-3">
                     <Text className="text-sm font-semibold text-ink dark:text-white" numberOfLines={1}>
-                      {order.customer?.nickname ?? "Deleted customer"}
+                      {order.customer?.nickname.toUpperCase() ?? "Deleted customer"}
                     </Text>
                     <Text className="mt-0.5 text-xs text-muted">
                       {fulfillmentLabel(order.fulfillmentType)} ·{" "}
