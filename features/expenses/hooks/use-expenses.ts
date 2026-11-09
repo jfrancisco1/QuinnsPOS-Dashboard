@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { getExpenseCategories, getExpenses, type Branch, type Expense, type ExpenseCategory } from '@/lib/api';
+import { clearResponseMemo, getExpenseCategories, getExpenses, type Branch, type Expense, type ExpenseCategory } from '@/lib/api';
 import { computeDateRange, getPeriodLabel, isInDateRange, parseLocalISO, toISO, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 import { cacheThenNetwork } from '@/lib/cache-then-network';
@@ -145,7 +145,10 @@ export function useExpenses({ token, selectedBranch, loadBranches }: Props) {
     }, [token, loadBranches, fetchExpenses, reconnectKey]),
   );
 
-  const onRefresh = useCallback(() => fetchExpenses(true), [fetchExpenses]);
+  const onRefresh = useCallback(() => {
+    clearResponseMemo();
+    fetchExpenses(true);
+  }, [fetchExpenses]);
   const retry = useCallback(() => fetchExpenses(), [fetchExpenses]);
   const showingCurrent = shownBranchKey === branchKey;
 

@@ -301,6 +301,30 @@ export async function readFromCache<T>(
   return result.ok ? result : null;
 }
 
+// The API allows 60 requests a minute per user, and screens refetch on every focus (Sales
+// alone sends 5). A GET repeated within MEMO_TTL_MS reuses the last answer, and identical
+// GETs in flight share one request. Any write clears the memo so edits show immediately.
+const MEMO_TTL_MS = 10_000;
+const responseMemo = new Map<string, { at: number; data: unknown }>();
+const inflightGets = new Map<string, Promise<ApiResult<unknown>>>();
+
+// For pull-to-refresh / Retry, where the owner explicitly asked for fresh data.
+export function clearResponseMemo(): void {
+  responseMemo.clear();
+}
+
+// Set when the API answers 429 with a wait longer than MAX_RATE_LIMIT_WAIT_MS. Until then,
+// GETs are served from the offline cache instead of hitting the limit again.
+let rateLimitedUntil = 0;
+
+function rateLimitError(): ApiResult<never> {
+  const seconds = Math.max(1, Math.ceil((rateLimitedUntil - Date.now()) / 1000));
+  return {
+    ok: false,
+    error: { message: `Too many requests. Please wait ${seconds}s and try again.`, status: 429 },
+  };
+}
+
 async function authFetch<T>(
   token: string,
   path: string,
@@ -313,6 +337,42 @@ async function authFetch<T>(
       ? { ok: true, data: cached.data as T }
       : { ok: false, error: { message: "Not cached", status: 0 } };
   }
+
+  if ((options.method ?? "GET").toUpperCase() !== "GET") {
+    const result = await sendRequest<T>(token, path, options, cacheable);
+    if (result.ok) responseMemo.clear();
+    return result;
+  }
+
+  const key = `${token}|${path}`;
+  const memo = responseMemo.get(key);
+  if (memo && Date.now() - memo.at < MEMO_TTL_MS) {
+    return { ok: true, data: memo.data as T };
+  }
+  const inflight = inflightGets.get(key);
+  if (inflight) return inflight as Promise<ApiResult<T>>;
+
+  const request = sendRequest<T>(token, path, options, cacheable)
+    .then((result) => {
+      if (result.ok) responseMemo.set(key, { at: Date.now(), data: result.data });
+      return result;
+    })
+    .finally(() => inflightGets.delete(key));
+  inflightGets.set(key, request);
+  return request;
+}
+
+async function sendRequest<T>(
+  token: string,
+  path: string,
+  options: RequestInit,
+  cacheable: boolean,
+): Promise<ApiResult<T>> {
+  if (Date.now() < rateLimitedUntil) {
+    const cached = cacheable ? await readCachedResponse(path) : null;
+    return cached ? { ok: true, data: cached.data as T } : rateLimitError();
+  }
+
   for (let attempt = 0; ; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -328,12 +388,20 @@ async function authFetch<T>(
         },
       });
 
-      if (response.status === 429 && attempt < MAX_RATE_LIMIT_RETRIES) {
+      if (response.status === 429) {
         const retryAfter = Number(response.headers.get("Retry-After"));
         const waitMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 500 * 2 ** attempt;
-        if (waitMs <= MAX_RATE_LIMIT_WAIT_MS) {
+        if (waitMs <= MAX_RATE_LIMIT_WAIT_MS && attempt < MAX_RATE_LIMIT_RETRIES) {
           await delay(waitMs);
           continue;
+        }
+        // A long wait (the per-minute limit, or a daily one like upgrade requests): stop
+        // sending until it passes and show the last saved copy of a GET if there is one.
+        // Writes still get the server's own message (e.g. "3 upgrade requests a day").
+        if (cacheable) {
+          rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + waitMs);
+          const cached = await readCachedResponse(path);
+          return cached ? { ok: true, data: cached.data as T } : rateLimitError();
         }
       }
 
@@ -673,6 +741,38 @@ export type SalesByPaymentType = {
   transactions: number;
   payment_amount: number;
 };
+
+export type ExpensesByCategory = {
+  breakdown: { categoryId: number | null; category: string; transactions: number; amount: number }[];
+  total: number;
+};
+
+// Expenses grouped by category, filtered on each expense's own date (expense_date).
+export async function getExpensesByCategory(
+  token: string,
+  opts: { from: string; to: string; branch_id?: number },
+): Promise<ApiResult<ExpensesByCategory>> {
+  const params = new URLSearchParams({ from: opts.from, to: opts.to });
+  if (opts.branch_id) params.set("branch_id", String(opts.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/expenses-by-category?${params.toString()}`);
+  if (!result.ok) return result;
+  const raw = (result.data ?? {}) as {
+    breakdown?: { category_id?: number | null; category?: string; transactions?: number; amount?: number }[];
+    total?: number;
+  };
+  return {
+    ok: true,
+    data: {
+      breakdown: (raw.breakdown ?? []).map((row) => ({
+        categoryId: row.category_id ?? null,
+        category: row.category ?? "Uncategorized",
+        transactions: Number(row.transactions ?? 0),
+        amount: Number(row.amount ?? 0),
+      })),
+      total: Number(raw.total ?? 0),
+    },
+  };
+}
 
 export async function getSalesByPaymentType(
   token: string,

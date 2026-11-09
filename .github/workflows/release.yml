@@ -39,21 +39,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Branch protection on master only accepts PRs, so the bump is pushed with an admin's
+      # fine-grained token (Contents: read & write on this repo), and admins may bypass the rule.
       - uses: actions/checkout@v4
         with:
           ref: master
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Check EXPO_TOKEN
+      - name: Check secrets
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         run: |
           if [ -z "$EXPO_TOKEN" ]; then
             echo "::error::Add the EXPO_TOKEN repo secret (expo.dev → Access tokens)."
+            exit 1
+          fi
+          if [ -z "$RELEASE_TOKEN" ]; then
+            echo "::error::Add the RELEASE_TOKEN repo secret (admin's fine-grained token, Contents: write) — see docs/release.md."
             exit 1
           fi
 
@@ -74,7 +82,8 @@ jobs:
           git commit -m "chore: release v$VERSION [skip ci]"
           git pull --rebase -q origin master
           git tag "v$VERSION"
-          git push origin HEAD:master "v$VERSION"
+          # --atomic: if master rejects the bump, don't leave a tag behind pointing at nothing.
+          git push --atomic origin HEAD:master "v$VERSION"
 
       - uses: expo/expo-github-action@v8
         with:

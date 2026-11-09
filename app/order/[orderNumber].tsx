@@ -69,6 +69,7 @@ export default function OrderDetailScreen() {
   const { orderNumber } = useLocalSearchParams<{ orderNumber: string }>();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<{ message: string; status: number } | null>(null);
   const [updatingPayment, setUpdatingPayment] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -80,7 +81,12 @@ export default function OrderDetailScreen() {
   useEffect(() => {
     if (!token || !orderNumber) return;
     getOrderByNumber(token, orderNumber).then((result) => {
-      if (result.ok) setOrder(result.data);
+      if (result.ok) {
+        setOrder(result.data);
+      } else {
+        console.warn(`[order] GET /orders/${orderNumber} failed (${result.error.status}): ${result.error.message}`);
+        setLoadError(result.error);
+      }
       setLoading(false);
     });
   }, [token, orderNumber]);
@@ -144,7 +150,15 @@ export default function OrderDetailScreen() {
   if (!order) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-zinc-950">
-        <Text className="text-sm text-zinc-500 dark:text-zinc-400">Order not found</Text>
+        <Text className="text-sm text-zinc-500 dark:text-zinc-400">
+          {loadError?.status === 404 ? 'Order not found' : "Couldn't load this order"}
+        </Text>
+        {loadError && loadError.status !== 404 ? (
+          <Text className="mt-1 px-8 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            {loadError.message}
+            {loadError.status ? ` (${loadError.status})` : ''}
+          </Text>
+        ) : null}
       </View>
     );
   }

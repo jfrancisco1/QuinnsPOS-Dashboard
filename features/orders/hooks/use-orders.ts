@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { getOrders, type Branch, type Order } from '@/lib/api';
+import { clearResponseMemo, getOrders, type Branch, type Order } from '@/lib/api';
 import { cacheThenNetwork } from '@/lib/cache-then-network';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
@@ -134,6 +134,7 @@ export function useOrders({ token, selectedBranch, loadBranches }: Props) {
   }, [requestKey, selectionKey, focusTick, reconnectKey, token, period, offset, customFrom, customTo, selectedBranch, debouncedSearch, statusTab]);
 
   const onRefresh = useCallback(() => {
+    clearResponseMemo();
     setRefreshing(true);
     setRefreshTick((t) => t + 1);
   }, []);
