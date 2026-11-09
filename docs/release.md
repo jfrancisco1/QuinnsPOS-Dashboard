@@ -79,9 +79,15 @@ branch as it is on GitHub, so push first):
 - **Branch protection:** GitHub → repo *Settings* → *Branches* (or *Rules*) → protect
   `master`: require a pull request before merging, and require the status check
   **Type-check, lint and test**. The check appears in the list after it has run once.
-  The release workflow pushes the version-bump commit and tag to `master` as
-  `github-actions[bot]`, so let GitHub Actions bypass the rule — otherwise the bump step
-  fails and no build starts.
+  The release workflow pushes the version-bump commit and tag straight to `master`, which
+  the rule would reject, so:
+  1. Let admins bypass it: uncheck *Do not allow bypassing the above settings* (classic
+     rule), or add *Repository admin* to the ruleset's bypass list.
+  2. Create a fine-grained token as the admin (github.com → *Settings* → *Developer
+     settings* → *Fine-grained tokens*): only this repository, *Contents: Read and write*.
+  3. Save it as the `RELEASE_TOKEN` repo secret. The workflow checks out and pushes with it.
+  Without these the bump step fails and no build starts. The token expires — renew the
+  secret when it does.
 - **`EXPO_TOKEN` repo secret:** expo.dev → *Account settings* → *Access tokens*; add it under
   GitHub → *Settings* → *Secrets and variables* → *Actions*. Used by the release and the
   preview APK.
