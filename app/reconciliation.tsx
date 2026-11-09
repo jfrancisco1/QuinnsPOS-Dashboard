@@ -11,6 +11,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { useAuth } from '@/context/auth-context';
 import { useBranch } from '@/context/branch-context';
 import { fulfillmentLabel, paymentLabel, paymentVariant } from '@/features/orders/utils';
+import { CashOnHandCard } from '@/features/reconciliation/components/cash-on-hand-card';
 import { useReconciliationData } from '@/features/reconciliation/hooks/use-reconciliation-data';
 import { PaymentTypesCard } from '@/features/sales/components/payment-types-card';
 import { PeriodPickerModal } from '@/features/sales/components/period-picker-modal';
@@ -51,6 +52,9 @@ export default function ReconciliationScreen() {
     salesByPayment,
     paidOrders,
     overallTotal,
+    cashCollected,
+    expenses,
+    expensesError,
     loading,
     error,
     ordersLoading,
@@ -176,6 +180,8 @@ export default function ReconciliationScreen() {
           </Text>
 
           <StatCard label="Total Collected" value={fmtPeso(overallTotal)} color="indigo" />
+
+          <CashOnHandCard cashCollected={cashCollected} expenses={expenses} expensesError={expensesError} />
 
           <PaymentTypesCard
             salesByPayment={salesByPayment}

@@ -2,7 +2,16 @@ import { useCallback, useState } from 'react';
 
 import { router, useFocusEffect } from 'expo-router';
 
-import { getOrders, getSalesByPaymentType, type Branch, type Order, type SalesByPaymentType } from '@/lib/api';
+import { paymentMethodKey } from '@/features/sales/utils';
+import {
+  getExpensesByCategory,
+  getOrders,
+  getSalesByPaymentType,
+  type Branch,
+  type ExpensesByCategory,
+  type Order,
+  type SalesByPaymentType,
+} from '@/lib/api';
 import { computeDateRange, getPeriodLabel, type Period } from '@/lib/date-helpers';
 import { takePendingDateRange } from '@/lib/date-range-store';
 import { useReconnectKey } from '@/lib/network-status';
@@ -66,6 +75,8 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   const [customTo, setCustomTo] = useState('');
   const [salesByPayment, setSalesByPayment] = useState<SalesByPaymentType[]>([]);
   const [paidOrders, setPaidOrders] = useState<PaidOrder[]>([]);
+  const [expenses, setExpenses] = useState<ExpensesByCategory | null>(null);
+  const [expensesError, setExpensesError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -101,6 +112,8 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
       setOrdersLoading(true);
       setOrdersError(null);
       setPaidOrders([]);
+      setExpenses(null);
+      setExpensesError(null);
 
       let fromStr: string;
       let toStr: string;
@@ -113,21 +126,31 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
         toStr = range.to;
       }
 
-      // Sales totals are a single request and gate the initial screen. The paid-orders
+      // Sales and expense totals gate the initial screen (one request each). The paid-orders
       // list is fetched separately below and streams in progressively, so a wide (e.g.
       // month-long) window doesn't hold the whole screen on a blank loading state.
-      getSalesByPaymentType(token, 'custom', {
-        from: fromStr,
-        to: toStr,
-        branch_id: selectedBranch?.id,
-        date_basis: 'paid',
-      })
-        .then((salesResult) => {
+      // Expenses have no payment method, so they're all treated as paid out of the cash
+      // drawer; a failed expense load only affects the cash card, not the whole screen.
+      Promise.all([
+        getSalesByPaymentType(token, 'custom', {
+          from: fromStr,
+          to: toStr,
+          branch_id: selectedBranch?.id,
+          date_basis: 'paid',
+        }),
+        getExpensesByCategory(token, { from: fromStr, to: toStr, branch_id: selectedBranch?.id }),
+      ])
+        .then(([salesResult, expensesResult]) => {
           if (cancelled) return;
           if (!salesResult.ok) {
             setError(salesResult.error.message);
           } else {
             setSalesByPayment(salesResult.data);
+          }
+          if (expensesResult.ok) {
+            setExpenses(expensesResult.data);
+          } else {
+            setExpensesError(expensesResult.error.message);
           }
           setLoading(false);
         })
@@ -175,6 +198,9 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
   }
 
   const overallTotal = salesByPayment.reduce((sum, row) => sum + row.payment_amount, 0);
+  const cashCollected = salesByPayment
+    .filter((row) => paymentMethodKey(row.payment_method) === 'cash')
+    .reduce((sum, row) => sum + row.payment_amount, 0);
   const periodLabel = getPeriodLabel(period, offset, customFrom, customTo);
   const canGoForward = period !== 'custom' && offset < 0;
   const canGoBack = period !== 'custom';
@@ -186,6 +212,9 @@ export function useReconciliationData({ token, selectedBranch }: Props) {
     salesByPayment,
     paidOrders,
     overallTotal,
+    cashCollected,
+    expenses,
+    expensesError,
     loading,
     error,
     ordersLoading,

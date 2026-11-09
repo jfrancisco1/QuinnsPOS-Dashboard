@@ -674,6 +674,38 @@ export type SalesByPaymentType = {
   payment_amount: number;
 };
 
+export type ExpensesByCategory = {
+  breakdown: { categoryId: number | null; category: string; transactions: number; amount: number }[];
+  total: number;
+};
+
+// Expenses grouped by category, filtered on each expense's own date (expense_date).
+export async function getExpensesByCategory(
+  token: string,
+  opts: { from: string; to: string; branch_id?: number },
+): Promise<ApiResult<ExpensesByCategory>> {
+  const params = new URLSearchParams({ from: opts.from, to: opts.to });
+  if (opts.branch_id) params.set("branch_id", String(opts.branch_id));
+  const result = await authFetch<unknown>(token, `/reports/expenses-by-category?${params.toString()}`);
+  if (!result.ok) return result;
+  const raw = (result.data ?? {}) as {
+    breakdown?: { category_id?: number | null; category?: string; transactions?: number; amount?: number }[];
+    total?: number;
+  };
+  return {
+    ok: true,
+    data: {
+      breakdown: (raw.breakdown ?? []).map((row) => ({
+        categoryId: row.category_id ?? null,
+        category: row.category ?? "Uncategorized",
+        transactions: Number(row.transactions ?? 0),
+        amount: Number(row.amount ?? 0),
+      })),
+      total: Number(raw.total ?? 0),
+    },
+  };
+}
+
 export async function getSalesByPaymentType(
   token: string,
   period: "today" | "this_week" | "this_month" | "this_year" | "custom",
