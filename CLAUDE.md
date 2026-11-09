@@ -17,11 +17,16 @@ npm test           # Jest unit tests (runs in CI)
 Unit tests (Jest, `jest-expo`) live in `__tests__/` folders next to the code (`*.test.ts`) and run
 in the Asia/Manila time zone with an in-memory AsyncStorage. Never put test files under `app/` —
 expo-router would treat them as screens. Checks run on GitHub Actions (`.github/workflows/checks.yml`):
-type-check, lint and tests on every PR into, and push to, `develop`/`master`. Builds run on EAS
-Workflows (`.eas/workflows/`): the preview APK is manual only (Actions → "Dashboard preview APK" →
-Run workflow, or `npm run preview:android`; each run uses EAS build quota); every push to `master` builds a production .aab and uploads it to the Google Play production
-track (service account key stored on EAS — see docs/release.md).
-The EAS build doesn't wait for the GitHub checks, so branch protection on `master` (require a PR
+type-check, lint and tests on every PR into, and push to, `develop`/`master`. The preview APK is an
+EAS Workflow (`.eas/workflows/preview.yml`), manual only (Actions → "Dashboard preview APK" →
+Run workflow, or `npm run preview:android`; each run uses EAS build quota). Every push to `master`
+runs `.github/workflows/release.yml`: it bumps the patch version in `app.json`
+(`scripts/bump-version.js`), commits `chore: release vX.Y.Z [skip ci]` + tag `vX.Y.Z` back to
+`master`, then `eas build --auto-submit` builds a production .aab and uploads it to the Google Play
+production track (service account key stored on EAS — see docs/release.md). Never bump `version`
+by hand on `develop`; `[skip release]` in the commit message skips a release, and a minor/major
+bump is a manual run of "Dashboard release".
+The release doesn't wait for the GitHub checks, so branch protection on `master` (require a PR
 and the "Type-check, lint and test" check) is what stops a broken release — see docs/release.md.
 
 ## Architecture

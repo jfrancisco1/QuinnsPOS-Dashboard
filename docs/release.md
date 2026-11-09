@@ -2,10 +2,11 @@
 
 Package: `com.jfrancisco2.quinnsposdashboard`
 
-## Automated (GitHub Actions + EAS Workflows)
+## Automated (GitHub Actions + EAS)
 
-Checks run on **GitHub Actions** (`.github/workflows/checks.yml`). Builds run on **EAS Workflows** (Expo's servers, `.eas/workflows/`, next to `eas.json`). GitHub
-triggers both.
+Checks and the release run on **GitHub Actions** (`.github/workflows/`). The builds themselves
+run on EAS (Expo's servers): the release workflow starts the production build with
+`eas build`, and the preview APK is an **EAS Workflow** (`.eas/workflows/preview.yml`).
 
 ```
 feature/*  ──PR──▶  develop  ──merge──▶  master
@@ -13,20 +14,24 @@ feature/*  ──PR──▶  develop  ──merge──▶  master
                       (manual)
 ```
 
-> **Every merge into `master` goes to Play production.** `release.yml` builds the `.aab`
-> and uploads it to the production track with the service account key stored on EAS.
+> **Every merge into `master` goes to Play production.** `.github/workflows/release.yml`
+> bumps the version, then builds the `.aab` on EAS and uploads it to the production track
+> with the service account key stored on EAS. One EAS build per merge — batch changes into
+> one `develop` → `master` PR to save build quota.
 
 | Event | GitHub Actions | EAS |
 |---|---|---|
 | PR into `develop` / `master` | Type-check + lint + unit tests | — |
 | Push to `develop` | Type-check + lint + unit tests | — |
 | *Run workflow* in Actions, or `npm run preview:android` | Starts the EAS run (`preview-apk.yml`) | **preview APK** of the chosen branch (`preview-android` profile, `preview.yml`) |
-| Push to `master` | Type-check + lint + unit tests | **production .aab** + upload to Play production (`release.yml`) |
+| Push to `master` | Type-check + lint + unit tests; **bumps the patch version**, commits + tags it (`release.yml`) | **production .aab** + upload to Play production (`eas build --auto-submit`) |
+| *Run workflow* on **Dashboard release** | Same, with the patch/minor/major bump you pick | Same |
 
-Check runs show on the PR and in the repo's *Actions* tab. Build runs show on expo.dev →
-**jfrancisco2** → **QuinnsPOS-Dashboard** → *Workflows*.
+Check and release runs show on the PR and in the repo's *Actions* tab. Builds show on
+expo.dev → **jfrancisco2** → **QuinnsPOS-Dashboard** → *Builds* (preview runs under
+*Workflows*).
 
-**The EAS build doesn't wait for GitHub.** A push to `master` starts the release build even
+**The release doesn't wait for the checks.** A push to `master` starts the release even
 when the checks on that commit fail. Branch protection on `master` is what stops a broken
 release: require a pull request and the **Type-check, lint and test** status check before
 merging (see *One-time setup*).
@@ -49,23 +54,40 @@ branch as it is on GitHub, so push first):
 | `lib/__tests__/plan.test.ts` | Trial days left, overdue/lapsed payment status and the grace period, plan limits, peso and API date formatting |
 
 ### Releasing through the pipeline
-1. On `develop`, bump `version` in `app.json`. `versionCode` is incremented by EAS
-   (`appVersionSource: "remote"` + `autoIncrement`). `android/` is gitignored — EAS runs
-   prebuild itself.
-2. Push/merge to `develop`, start the preview APK (Actions → *Run workflow*, or
+1. Push/merge to `develop`, start the preview APK (Actions → *Run workflow*, or
    `npm run preview:android`), then install the APK from expo.dev on a phone and check it.
-3. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
-   passes. The `.aab` is built on EAS and uploaded to the production track automatically.
-   It goes live once Google's review passes (or when you press *Publish*, if *Managed
-   publishing* is on in Play Console). Add release notes in Play Console if you want.
+2. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
+   passes. The release workflow bumps the patch version, commits
+   `chore: release vX.Y.Z [skip ci]` to `master`, tags `vX.Y.Z`, and runs
+   `eas build -p android --profile production --auto-submit`. It goes live once Google's
+   review passes (or when you press *Publish*, if *Managed publishing* is on in Play
+   Console). Add release notes in Play Console if you want.
+
+### How the version is bumped
+- `version` lives in `app.json` (`expo.version`); `scripts/bump-version.js` bumps it.
+- Each push to `master` bumps the **patch** (`1.4.0` → `1.4.1`).
+- For a **minor/major** release: merge with `[skip release]` in the merge commit message,
+  then *Actions* → **Dashboard release** → *Run workflow* on `master` and pick the part.
+- To push to `master` without releasing, put `[skip release]` in the commit message.
+- `versionCode` (the number Play shows next to the version, e.g. `9 (1.4.1)`) is separate
+  and must go up on every upload — EAS auto-increments it (`appVersionSource: "remote"` +
+  `autoIncrement`). `android/` is gitignored — EAS runs prebuild itself.
+- Never bump `version` by hand on `develop`; the bump only happens on `master`. Merge
+  `master` back into `develop` now and then to keep the number in sync there.
 
 ### One-time setup
 - **Branch protection:** GitHub → repo *Settings* → *Branches* (or *Rules*) → protect
   `master`: require a pull request before merging, and require the status check
   **Type-check, lint and test**. The check appears in the list after it has run once.
+  The release workflow pushes the version-bump commit and tag to `master` as
+  `github-actions[bot]`, so let GitHub Actions bypass the rule — otherwise the bump step
+  fails and no build starts.
+- **`EXPO_TOKEN` repo secret:** expo.dev → *Account settings* → *Access tokens*; add it under
+  GitHub → *Settings* → *Secrets and variables* → *Actions*. Used by the release and the
+  preview APK.
 - **Link GitHub to EAS:** expo.dev → project **QuinnsPOS-Dashboard** (owner `jfrancisco2`) →
-  *Project settings* → *GitHub* → connect `jfrancisco1/QuinnsPOS-Dashboard`. Until this is
-  done, no EAS build runs.
+  *Project settings* → *GitHub* → connect `jfrancisco1/QuinnsPOS-Dashboard`. The preview
+  APK (an EAS Workflow) needs this.
 - **Play uploads (done):** service account
   `eas-play-upload@quinns-pos.iam.gserviceaccount.com` (Google Cloud project *Quinns POS*).
   Its JSON key is stored on EAS: expo.dev → project → *Credentials* → Android → *Google
@@ -73,12 +95,12 @@ branch as it is on GitHub, so push first):
   commit it. In Play Console → *Users and permissions* it has *View app information*,
   *Release to production* and *Release apps to testing tracks*. The same key is what
   `npm run deploy:android` / `submit:android` use.
-- **Turning off Play uploads:** remove the `submit_play` job from
-  `.eas/workflows/release.yml`; `master` then only builds the `.aab`.
+- **Turning off Play uploads:** drop `--auto-submit` from the last step of
+  `.github/workflows/release.yml`; `master` then only builds the `.aab`.
 - **Validating EAS workflow files:** use the latest CLI. Older global installs fail with
   "reading 'const'":
   ```bash
-  npx -y eas-cli@latest workflow:validate .eas/workflows/release.yml
+  npx -y eas-cli@latest workflow:validate .eas/workflows/preview.yml
   ```
 
 ---
@@ -93,7 +115,9 @@ branch as it is on GitHub, so push first):
 | `npm run deploy:android` | Builds **and** uploads to Play Console's production track |
 | `npm run submit:android` | Uploads the latest finished build without rebuilding |
 
-`versionCode` is incremented automatically. You only change `"version"` in `app.json`.
+`versionCode` is incremented automatically. You only change `"version"` in `app.json`
+(`node scripts/bump-version.js patch|minor|major`). Do this on `master` so the pipeline's
+next bump starts from it.
 
 ---
 
