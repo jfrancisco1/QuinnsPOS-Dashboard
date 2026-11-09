@@ -24,8 +24,8 @@ feature/*  ──PR──▶  develop  ──merge──▶  master
 | PR into `develop` / `master` | Type-check + lint + unit tests | — |
 | Push to `develop` | Type-check + lint + unit tests | — |
 | *Run workflow* in Actions, or `npm run preview:android` | Starts the EAS run (`preview-apk.yml`) | **preview APK** of the chosen branch (`preview-android` profile, `preview.yml`) |
-| Push to `master` | Type-check + lint + unit tests; **bumps the patch version**, commits + tags it (`release.yml`) | **production .aab** + upload to Play production (`eas build --auto-submit`) |
-| *Run workflow* on **Dashboard release** | Same, with the patch/minor/major bump you pick | Same |
+| Push to `master` | Type-check + lint + unit tests; **bumps the version** (patch/minor/major from the commit messages), commits + tags it (`release.yml`) | **production .aab** + upload to Play production (`eas build --auto-submit`) |
+| *Run workflow* on **Dashboard release** | Same, with `auto` or the part you pick | Same |
 
 Check and release runs show on the PR and in the repo's *Actions* tab. Builds show on
 expo.dev → **jfrancisco2** → **QuinnsPOS-Dashboard** → *Builds* (preview runs under
@@ -56,14 +56,14 @@ branch as it is on GitHub, so push first):
 | `lib/__tests__/api-rate-limit.test.ts` | Staying under the API's 60/min limit: reused GET answers, shared in-flight requests, writes and pull-to-refresh clearing them, 429 fallback |
 | `lib/__tests__/offline-cache.test.ts` | Saving/reading the last answers, oversize entries, eviction past the budget, clearing on logout |
 | `features/*/__tests__/utils.test.ts` | Order/payment labels and badges, peso formatting, add-on categories, usernames and suggested passwords, Reconciliation cash on hand |
-| `scripts/__tests__/bump-version.test.ts` | The release version bump (patch/minor/major, bad input) |
+| `scripts/__tests__/bump-version.test.ts` | The release version bump: picking patch/minor/major from commit messages, applying it, bad input |
 | `scripts/__tests__/release-config.test.ts` | Release guards in `app.json`/`eas.json`: version format, package name, R8, versionCode auto-increment, `.aab` + production track |
 
 ### Releasing through the pipeline
 1. Push/merge to `develop`, start the preview APK (Actions → *Run workflow*, or
    `npm run preview:android`), then install the APK from expo.dev on a phone and check it.
 2. Open a PR from `develop` into `master`. Merge it once **Type-check, lint and test**
-   passes. The release workflow bumps the patch version, commits
+   passes. The release workflow bumps the version (see below), commits
    `chore: release vX.Y.Z [skip ci]` to `master`, tags `vX.Y.Z`, and runs
    `eas build -p android --profile production --auto-submit`. It goes live once Google's
    review passes (or when you press *Publish*, if *Managed publishing* is on in Play
@@ -71,9 +71,13 @@ branch as it is on GitHub, so push first):
 
 ### How the version is bumped
 - `version` lives in `app.json` (`expo.version`); `scripts/bump-version.js` bumps it.
-- Each push to `master` bumps the **patch** (`1.4.0` → `1.4.1`).
-- For a **minor/major** release: merge with `[skip release]` in the merge commit message,
-  then *Actions* → **Dashboard release** → *Run workflow* on `master` and pick the part.
+- Each push to `master` picks the part from the commit messages since the last `vX.Y.Z`
+  tag (conventional commits), so nothing is done by hand:
+  - any `feat:` / `feat(scope):` → **minor** (`1.4.1` → `1.5.0`)
+  - `feat!:` / `fix(scope)!:` or `BREAKING CHANGE:` in a message → **major** (`2.0.0`)
+  - otherwise (`fix:`, `test:`, `chore:`, …) → **patch** (`1.4.2`)
+- To force a part: merge with `[skip release]` in the merge commit message, then *Actions* →
+  **Dashboard release** → *Run workflow* on `master` and pick it (default `auto`).
 - To push to `master` without releasing, put `[skip release]` in the commit message.
 - `versionCode` (the number Play shows next to the version, e.g. `9 (1.4.1)`) is separate
   and must go up on every upload — EAS auto-increments it (`appVersionSource: "remote"` +

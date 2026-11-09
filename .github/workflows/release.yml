@@ -1,11 +1,13 @@
 # Dashboard release: every push to `master` —
-#   1. bumps the app version (patch: 1.4.0 → 1.4.1) in app.json (scripts/bump-version.js),
+#   1. bumps the app version in app.json (scripts/bump-version.js), picking the part from the
+#      commit messages since the last vX.Y.Z tag: a `feat:` commit → minor (1.4.1 → 1.5.0),
+#      `feat!:` or "BREAKING CHANGE" → major, otherwise patch (1.4.1 → 1.4.2),
 #   2. commits it back to master and tags it `vX.Y.Z`,
 #   3. starts a production build (.aab) on EAS and, once it finishes, submits it to the
 #      Google Play **production** track (eas.json → submit.production). Google still reviews it.
 #
 # versionCode is separate: EAS auto-increments it (eas.json → appVersionSource: "remote").
-# For a minor/major bump, run this workflow by hand (Actions → Dashboard release → Run workflow).
+# To force a part, run this workflow by hand (Actions → Dashboard release → Run workflow).
 # Put `[skip release]` in the commit message on master to push without releasing.
 #
 # Needs the EXPO_TOKEN repo secret (expo.dev → Account settings → Access tokens) and the Google
@@ -21,8 +23,8 @@ on:
       bump:
         description: Version part to bump
         type: choice
-        options: [patch, minor, major]
-        default: patch
+        options: [auto, patch, minor, major]
+        default: auto
 
 # Releases take turns; a queued run checks out master again so it sees the previous bump.
 concurrency:
@@ -45,6 +47,8 @@ jobs:
         with:
           ref: master
           token: ${{ secrets.RELEASE_TOKEN }}
+          # Full history and tags, so `auto` can read the commits since the last release.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -68,7 +72,7 @@ jobs:
       - name: Bump version
         id: bump
         run: |
-          VERSION=$(node scripts/bump-version.js "${{ inputs.bump || 'patch' }}")
+          VERSION=$(node scripts/bump-version.js "${{ inputs.bump || 'auto' }}")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing dashboard v$VERSION"
 
